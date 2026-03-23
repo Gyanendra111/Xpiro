@@ -1,0 +1,2469 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <title>Xpiro — Never Let Anything Expire Unseen</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <style>
+/* ═══════════════════════════════════════════════════════════
+   XPIRO — style.css   (fixed)
+   Theme: Refined Dark/Light with neon-teal accents
+   Font: Syne (display) + DM Sans (body)
+═══════════════════════════════════════════════════════════ */
+
+/* ── TOKENS ──────────────────────────────────────────────── */
+:root {
+  --accent:       #00e5c3;
+  --accent-dim:   #00b89a;
+  --accent-glow:  rgba(0,229,195,0.18);
+  --red:          #ff4d6d;
+  --amber:        #ffb347;
+  --green:        #4ade80;
+  --blue:         #60a5fa;
+  --font-display: 'Syne', sans-serif;
+  --font-body:    'DM Sans', sans-serif;
+  --radius:       14px;
+  --radius-sm:    8px;
+  --radius-lg:    20px;
+  --shadow:       0 8px 32px rgba(0,0,0,0.35);
+  --shadow-sm:    0 2px 12px rgba(0,0,0,0.2);
+  --transition:   0.22s ease;
+  --sidebar-w:    240px;
+  --topbar-h:     64px;
+}
+
+/* DARK MODE (default) */
+[data-theme="dark"] {
+  --bg:           #0d0f14;
+  --bg-2:         #141720;
+  --bg-3:         #1c1f2b;
+  --surface:      #1e2130;
+  --surface-2:    #252a3a;
+  --border:       rgba(255,255,255,0.07);
+  --text:         #e8ecf4;
+  --text-muted:   #7a8299;
+  --text-faint:   #3e4560;
+  --input-bg:     #141720;
+}
+
+/* LIGHT MODE */
+[data-theme="light"] {
+  --bg:           #f4f5f9;
+  --bg-2:         #ffffff;
+  --bg-3:         #eef0f6;
+  --surface:      #ffffff;
+  --surface-2:    #f0f2f8;
+  --border:       rgba(0,0,0,0.08);
+  --text:         #141720;
+  --text-muted:   #5a6380;
+  --text-faint:   #c0c6d9;
+  --input-bg:     #f0f2f8;
+}
+
+/* ── RESET ───────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background var(--transition), color var(--transition);
+}
+a { text-decoration: none; color: inherit; }
+button { cursor: pointer; border: none; background: none; font-family: inherit; }
+input, select, textarea { font-family: inherit; color: var(--text); }
+img { max-width: 100%; }
+.hidden { display: none !important; }
+
+/* ── SPLASH ──────────────────────────────────────────────── */
+#splash {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.4s ease;
+}
+.splash-inner { text-align: center; }
+.splash-icon {
+  font-size: 3.5rem; color: var(--accent);
+  filter: drop-shadow(0 0 24px var(--accent));
+  animation: pulseGlow 1.5s ease infinite;
+  margin-bottom: 1rem;
+}
+.splash-title {
+  font-family: var(--font-display);
+  font-size: 2.8rem; font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), var(--blue));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.4rem;
+}
+.splash-sub { color: var(--text-muted); font-size: 1rem; margin-bottom: 2rem; }
+.splash-loader { display: flex; gap: 8px; justify-content: center; }
+.splash-loader span {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--accent); opacity: 0.3;
+  animation: loaderBounce 0.8s ease infinite;
+}
+.splash-loader span:nth-child(2) { animation-delay: 0.15s; }
+.splash-loader span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes loaderBounce { 0%,100%{opacity:.3;transform:translateY(0)} 50%{opacity:1;transform:translateY(-8px)} }
+@keyframes pulseGlow { 0%,100%{filter:drop-shadow(0 0 16px var(--accent))} 50%{filter:drop-shadow(0 0 32px var(--accent))} }
+
+/* ── APP SHELL ───────────────────────────────────────────── */
+#app {
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+}
+#app.hidden { display: none; }
+
+/* ── SIDEBAR ─────────────────────────────────────────────── */
+#sidebar {
+  width: var(--sidebar-w);
+  background: var(--bg-2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 200;
+  transition: transform var(--transition), background var(--transition);
+  overflow-y: auto;
+}
+.sidebar-brand {
+  padding: 1.5rem 1.5rem 1rem;
+  display: flex; align-items: center; gap: 0.75rem;
+  font-family: var(--font-display);
+  font-size: 1.2rem; font-weight: 800;
+  color: var(--accent);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.sidebar-brand i { font-size: 1.4rem; filter: drop-shadow(0 0 8px var(--accent)); }
+.sidebar-nav {
+  flex: 1; padding: 1rem 0.75rem;
+  display: flex; flex-direction: column; gap: 4px;
+  overflow-y: auto;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 0.8rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.92rem; font-weight: 500;
+  transition: all var(--transition);
+  position: relative;
+}
+.nav-item i { width: 18px; text-align: center; font-size: 0.95rem; flex-shrink: 0; }
+.nav-item:hover { background: var(--surface); color: var(--text); }
+.nav-item.active {
+  background: var(--accent-glow);
+  color: var(--accent);
+  font-weight: 600;
+}
+.nav-item.active::before {
+  content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
+  width: 3px; border-radius: 2px;
+  background: var(--accent);
+}
+.sidebar-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.version-tag { font-size: 0.72rem; color: var(--text-faint); }
+
+/* ── SIDEBAR OVERLAY (mobile) ────────────────────────────── */
+#sidebar-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 199;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(2px);
+}
+#sidebar-overlay.visible { display: block; }
+
+/* ── TOPBAR ──────────────────────────────────────────────── */
+#topbar {
+  position: sticky; top: 0; z-index: 100;
+  height: var(--topbar-h);
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 1.5rem; gap: 1rem;
+  backdrop-filter: blur(12px);
+}
+.topbar-title {
+  flex: 1;
+  font-family: var(--font-display);
+  font-size: 1.1rem; font-weight: 700;
+}
+.topbar-actions { display: flex; align-items: center; gap: 0.75rem; }
+.avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--blue));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; font-weight: 700;
+  color: #0d0f14; cursor: pointer;
+  flex-shrink: 0;
+  user-select: none;
+}
+/* Hide hamburger by default (desktop) */
+#menu-toggle { display: none; }
+
+/* ── MAIN ────────────────────────────────────────────────── */
+#main {
+  margin-left: var(--sidebar-w);
+  flex: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* prevent flex overflow */
+}
+
+/* ── PAGES ───────────────────────────────────────────────── */
+.page {
+  padding: 2rem;
+  flex: 1;
+  animation: pageIn 0.3s ease;
+  width: 100%;
+  max-width: 1200px;
+}
+@keyframes pageIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+.page-header { margin-bottom: 2rem; }
+.page-header h2 {
+  font-family: var(--font-display);
+  font-size: 1.8rem; font-weight: 800;
+  margin-bottom: 0.3rem;
+}
+.page-header-row {
+  display: flex; align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;
+}
+.page-header-row h2 {
+  font-family: var(--font-display);
+  font-size: 1.8rem; font-weight: 800;
+  margin-bottom: 0.3rem;
+}
+.sub { color: var(--text-muted); font-size: 0.9rem; }
+
+/* ── STAT CARDS ──────────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem; margin-bottom: 2rem;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  display: flex; align-items: center; gap: 1rem;
+  transition: transform var(--transition), box-shadow var(--transition);
+  min-width: 0;
+}
+.stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.stat-card i { font-size: 1.6rem; flex-shrink: 0; }
+.stat-card .stat-num {
+  font-family: var(--font-display);
+  font-size: 1.8rem; font-weight: 800;
+  display: block; line-height: 1;
+}
+.stat-card .stat-label { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; display: block; }
+.accent-red i, .accent-red .stat-num  { color: var(--red); }
+.accent-amber i, .accent-amber .stat-num { color: var(--amber); }
+.accent-green i, .accent-green .stat-num { color: var(--green); }
+.accent-blue i, .accent-blue .stat-num  { color: var(--blue); }
+
+/* ── SECTION TITLE ───────────────────────────────────────── */
+.section-title {
+  font-family: var(--font-display);
+  font-size: 1rem; font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  margin: 2rem 0 1rem;
+}
+
+/* ── ITEM CARDS ──────────────────────────────────────────── */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+.item-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  position: relative; overflow: hidden;
+  cursor: pointer;
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+  animation: cardIn 0.3s ease;
+  min-width: 0;
+}
+@keyframes cardIn { from{opacity:0;transform:scale(0.96)} to{opacity:1;transform:scale(1)} }
+.item-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+.item-card.status-expired { border-color: rgba(255,77,109,0.4); }
+.item-card.status-soon    { border-color: rgba(255,179,71,0.4); }
+.item-card.status-ok      { border-color: rgba(74,222,128,0.15); }
+.item-card::before {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 3px;
+}
+.item-card.status-expired::before { background: var(--red); }
+.item-card.status-soon::before    { background: var(--amber); }
+.item-card.status-ok::before      { background: var(--green); }
+.card-top {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.card-emoji { font-size: 1.8rem; line-height: 1; }
+.card-actions { display: flex; gap: 4px; opacity: 0; transition: opacity var(--transition); }
+.item-card:hover .card-actions { opacity: 1; }
+.card-name {
+  font-family: var(--font-display);
+  font-size: 1rem; font-weight: 700;
+  margin-bottom: 0.2rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.card-brand { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem; }
+.card-expiry { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.expiry-badge {
+  font-size: 0.78rem; font-weight: 600;
+  padding: 3px 10px; border-radius: 20px;
+}
+.expiry-badge.expired { background: rgba(255,77,109,0.15); color: var(--red); }
+.expiry-badge.soon    { background: rgba(255,179,71,0.15);  color: var(--amber); }
+.expiry-badge.ok      { background: rgba(74,222,128,0.12);  color: var(--green); }
+.days-left { font-size: 0.75rem; color: var(--text-muted); }
+.card-footer {
+  margin-top: 0.75rem; padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.category-tag {
+  font-size: 0.72rem; font-weight: 600;
+  color: var(--accent); background: var(--accent-glow);
+  padding: 2px 8px; border-radius: 20px;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.reminder-icon { font-size: 0.8rem; color: var(--text-muted); }
+
+/* ── BUTTONS ─────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem; font-weight: 600;
+  font-family: var(--font-body);
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.btn-primary { background: var(--accent); color: #0a0c10; }
+.btn-primary:hover { background: var(--accent-dim); transform: translateY(-1px); box-shadow: 0 4px 16px var(--accent-glow); }
+.btn-ghost { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--surface); color: var(--text); }
+.btn-danger { background: rgba(255,77,109,0.15); color: var(--red); border: 1px solid rgba(255,77,109,0.25); }
+.btn-danger:hover { background: rgba(255,77,109,0.25); }
+.btn-icon-sm {
+  width: 30px; height: 30px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 6px; font-size: 0.8rem;
+  background: var(--surface-2); color: var(--text-muted);
+  border: 1px solid var(--border);
+  transition: all var(--transition);
+}
+.btn-icon-sm:hover { background: rgba(255,77,109,0.15); color: var(--red); border-color: rgba(255,77,109,0.3); }
+.btn-icon-sm.edit:hover { background: rgba(96,165,250,0.15); color: var(--blue); border-color: rgba(96,165,250,0.3); }
+.icon-btn {
+  width: 38px; height: 38px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface-2); color: var(--text-muted);
+  border: 1px solid var(--border);
+  font-size: 0.95rem;
+  transition: all var(--transition);
+  position: relative;
+  flex-shrink: 0;
+}
+.icon-btn:hover { background: var(--surface); color: var(--text); }
+
+/* ── BADGE ───────────────────────────────────────────────── */
+.badge {
+  min-width: 18px; height: 18px;
+  border-radius: 9px; padding: 0 5px;
+  background: var(--red); color: #fff;
+  font-size: 0.7rem; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+  line-height: 1;
+}
+.nav-item .badge { margin-left: auto; }
+#topbar-badge {
+  position: absolute; top: -4px; right: -4px;
+  width: 16px; height: 16px; min-width: unset; padding: 0;
+  font-size: 0.62rem;
+}
+
+/* ── SCAN PAGE ───────────────────────────────────────────── */
+.scan-container { max-width: 680px; }
+.steps {
+  display: flex; align-items: center;
+  gap: 0; margin-bottom: 2rem;
+}
+.step {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 4px; flex: 0 0 auto;
+  transition: all 0.3s ease;
+}
+.step span {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.85rem; font-weight: 700;
+  transition: all var(--transition);
+}
+.step p { font-size: 0.72rem; color: var(--text-muted); font-weight: 500; }
+.step.active span { background: var(--accent); border-color: var(--accent); color: #0a0c10; }
+.step.done span { background: var(--green); border-color: var(--green); color: #0a0c10; }
+.step-line { flex: 1; height: 2px; background: var(--border); margin: 0 0.5rem; margin-bottom: 1.2rem; }
+
+/* CAMERA */
+.camera-wrap {
+  background: #000;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: relative;
+  aspect-ratio: 4/3;
+  max-height: 380px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+#camera-feed {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+  transition: transform 0.3s ease;
+}
+.scan-overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.scan-frame {
+  width: 72%; max-width: 300px;
+  aspect-ratio: 2/1;
+  position: relative;
+}
+.corner {
+  position: absolute; width: 24px; height: 24px;
+  border-color: var(--accent); border-style: solid;
+}
+.corner.tl { top: 0; left: 0; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+.corner.tr { top: 0; right: 0; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+.corner.bl { bottom: 0; left: 0; border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+.corner.br { bottom: 0; right: 0; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+.scan-line {
+  position: absolute; left: 5%; right: 5%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: scanLine 2s ease-in-out infinite;
+}
+@keyframes scanLine {
+  0%   { top: 8%; opacity: 0.4; }
+  50%  { top: 88%; opacity: 1; }
+  100% { top: 8%; opacity: 0.4; }
+}
+.scan-hint {
+  margin-top: 1rem; font-size: 0.78rem;
+  color: rgba(255,255,255,0.7); text-align: center;
+}
+.camera-controls {
+  position: absolute; bottom: 1rem; left: 0; right: 0;
+  display: flex; align-items: center; justify-content: center; gap: 1rem;
+}
+.capture-big { padding: 0.7rem 1.8rem; border-radius: 30px; font-size: 0.95rem; }
+
+.divider-text {
+  text-align: center; position: relative;
+  margin: 1.75rem 0; color: var(--text-faint);
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em;
+}
+.divider-text::before, .divider-text::after {
+  content: ''; position: absolute;
+  top: 50%; width: calc(50% - 80px);
+  height: 1px; background: var(--border);
+}
+.divider-text::before { left: 0; }
+.divider-text::after { right: 0; }
+.divider-text span {
+  background: var(--bg); padding: 0 0.75rem;
+  position: relative; z-index: 1;
+}
+
+/* FORM */
+.form-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+}
+.form-group { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
+.form-group label { font-size: 0.82rem; font-weight: 600; color: var(--text-muted); }
+.req { color: var(--red); }
+.form-group input, .form-group select {
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.9rem;
+  color: var(--text);
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  width: 100%;
+}
+.form-group input:focus, .form-group select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.reminder-options { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.radio-option {
+  display: flex; align-items: center; gap: 0.5rem;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  cursor: pointer; transition: all var(--transition);
+}
+.radio-option input { display: none; }
+.radio-option:has(input:checked) {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.ai-banner {
+  display: flex; align-items: center; gap: 0.75rem;
+  background: rgba(0,229,195,0.08);
+  border: 1px solid rgba(0,229,195,0.25);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+.ai-banner i { font-size: 1.1rem; flex-shrink: 0; }
+.form-actions { display: flex; justify-content: flex-end; gap: 0.75rem; flex-wrap: wrap; }
+
+/* ── FILTER BAR ──────────────────────────────────────────── */
+.filter-bar {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 0.75rem; margin-bottom: 1.5rem;
+}
+.search-wrap {
+  position: relative; flex: 1; min-width: 180px;
+}
+.search-wrap i {
+  position: absolute; left: 0.9rem; top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted); font-size: 0.85rem;
+  pointer-events: none;
+}
+.search-wrap input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.9rem 0.6rem 2.4rem;
+  font-size: 0.88rem; color: var(--text); outline: none;
+  transition: border-color var(--transition);
+}
+.search-wrap input:focus { border-color: var(--accent); }
+
+/* Chips scroll wrapper — key fix for mobile horizontal scroll */
+.filter-chips-scroll {
+  flex: 1;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  min-width: 0;
+}
+.filter-chips-scroll::-webkit-scrollbar { display: none; }
+.filter-chips {
+  display: flex;
+  gap: 0.5rem;
+  white-space: nowrap;
+  padding-bottom: 2px;
+}
+.chip {
+  padding: 0.4rem 0.9rem; border-radius: 20px;
+  font-size: 0.8rem; font-weight: 600;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  transition: all var(--transition);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip.active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+.sort-select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.8rem;
+  font-size: 0.85rem; color: var(--text); outline: none;
+  flex-shrink: 0;
+}
+
+/* ── REMINDER LIST ───────────────────────────────────────── */
+.reminder-legend {
+  display: flex; gap: 1.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;
+}
+.legend-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--text-muted); }
+.dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.dot.red   { background: var(--red); box-shadow: 0 0 6px var(--red); }
+.dot.amber { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+.dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.reminder-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.reminder-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  display: flex; align-items: center; gap: 1rem;
+  animation: cardIn 0.3s ease;
+  transition: transform var(--transition);
+  flex-wrap: wrap;
+}
+.reminder-row:hover { transform: translateX(4px); }
+.reminder-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.reminder-info { flex: 1; min-width: 150px; }
+.reminder-name { font-weight: 600; font-size: 0.9rem; }
+.reminder-meta { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+.reminder-badge {
+  font-size: 0.75rem; font-weight: 600;
+  padding: 3px 10px; border-radius: 20px;
+  flex-shrink: 0;
+}
+.reminder-badge.expired  { background: rgba(255,77,109,0.15); color: var(--red); }
+.reminder-badge.soon     { background: rgba(255,179,71,0.15);  color: var(--amber); }
+.reminder-badge.scheduled{ background: rgba(74,222,128,0.12);  color: var(--green); }
+
+/* ── HISTORY ─────────────────────────────────────────────── */
+.history-list { display: flex; flex-direction: column; }
+.history-item {
+  display: flex; align-items: flex-start; gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border);
+  animation: cardIn 0.3s ease;
+}
+.history-dot-wrap {
+  display: flex; flex-direction: column; align-items: center;
+  flex-shrink: 0; padding-top: 4px;
+}
+.history-dot { width: 10px; height: 10px; border-radius: 50%; }
+.history-dot.add    { background: var(--green); }
+.history-dot.delete { background: var(--red); }
+.history-dot.expire { background: var(--amber); }
+.history-dot.scan   { background: var(--blue); }
+.history-dot.edit   { background: #a78bfa; }
+.history-dot.remind { background: var(--accent); }
+.history-line { width: 1px; flex: 1; background: var(--border); min-height: 24px; margin-top: 6px; }
+.history-content { flex: 1; min-width: 0; }
+.history-title { font-size: 0.9rem; font-weight: 500; word-break: break-word; }
+.history-time { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+
+/* ── PROFILE ─────────────────────────────────────────────── */
+.profile-hero {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  display: flex; align-items: center; gap: 1.5rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+.profile-avatar {
+  width: 70px; height: 70px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--blue));
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 1.4rem; font-weight: 800; color: #0a0c10;
+  flex-shrink: 0;
+}
+.profile-info { flex: 1; min-width: 120px; }
+.profile-info h2 { font-family: var(--font-display); font-size: 1.4rem; font-weight: 800; }
+.profile-info p { color: var(--text-muted); font-size: 0.88rem; margin-top: 2px; word-break: break-all; }
+
+/* SETTINGS */
+.settings-list {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+.settings-row {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+  gap: 1rem;
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-row > div { display: flex; align-items: center; gap: 0.75rem; color: var(--text); min-width: 0; }
+.settings-row i { color: var(--text-muted); width: 18px; text-align: center; flex-shrink: 0; }
+
+/* TOGGLE SWITCH */
+.toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+.toggle-switch input { display: none; }
+.toggle-switch .slider {
+  position: absolute; inset: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px; cursor: pointer;
+  transition: background var(--transition);
+}
+.toggle-switch .slider::before {
+  content: ''; position: absolute;
+  width: 18px; height: 18px; border-radius: 50%;
+  top: 2px; left: 2px;
+  background: var(--text-muted);
+  transition: transform var(--transition), background var(--transition);
+}
+.toggle-switch input:checked + .slider { background: var(--accent-glow); border-color: var(--accent); }
+.toggle-switch input:checked + .slider::before { transform: translateX(20px); background: var(--accent); }
+
+/* ── MODAL ───────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  width: 100%; max-width: 480px;
+  box-shadow: var(--shadow);
+  animation: modalIn 0.25s ease;
+  max-height: 90vh; overflow-y: auto;
+  padding: 1.5rem;
+}
+@keyframes modalIn { from{opacity:0;transform:scale(0.93)} to{opacity:1;transform:scale(1)} }
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1.25rem; gap: 1rem;
+}
+.modal-header h3 { font-family: var(--font-display); font-size: 1.1rem; font-weight: 700; min-width: 0; word-break: break-word; }
+.confirm-modal { max-width: 380px; }
+.modal-detail-row {
+  display: flex; justify-content: space-between;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem; gap: 1rem;
+}
+.modal-detail-row:last-child { border-bottom: none; }
+.modal-detail-row .lbl { color: var(--text-muted); flex-shrink: 0; }
+.modal-detail-row .val { font-weight: 600; text-align: right; word-break: break-word; }
+.modal-actions { display: flex; gap: 0.75rem; margin-top: 1.25rem; flex-wrap: wrap; }
+
+/* ── TOAST ───────────────────────────────────────────────── */
+#toast-container {
+  position: fixed; bottom: 1.5rem; right: 1.5rem;
+  z-index: 9000; display: flex; flex-direction: column; gap: 0.5rem;
+  pointer-events: none;
+}
+.toast {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.8rem 1.2rem;
+  min-width: 240px; max-width: 340px;
+  display: flex; align-items: center; gap: 0.75rem;
+  box-shadow: var(--shadow);
+  font-size: 0.88rem;
+  animation: toastIn 0.3s ease;
+  pointer-events: all;
+}
+@keyframes toastIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+.toast.success i { color: var(--green); }
+.toast.error   i { color: var(--red); }
+.toast.info    i { color: var(--blue); }
+.toast.warn    i { color: var(--amber); }
+.toast span:nth-child(2) { flex: 1; }
+.toast-close { margin-left: auto; color: var(--text-faint); font-size: 0.8rem; cursor: pointer; flex-shrink: 0; }
+
+/* ── EMPTY STATE ─────────────────────────────────────────── */
+.empty-state {
+  text-align: center; padding: 4rem 2rem;
+  color: var(--text-muted);
+}
+.empty-state i { font-size: 3rem; color: var(--text-faint); margin-bottom: 1rem; display: block; }
+.empty-state p { font-size: 0.95rem; }
+
+/* ── SCROLLBAR ───────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+/* ═══════════════════════════════════════════════════════════
+   SCAN ANIMATIONS
+═══════════════════════════════════════════════════════════ */
+@keyframes framePulse {
+  0%   { box-shadow: 0 0 0 0 rgba(99,102,241,0.7); }
+  70%  { box-shadow: 0 0 0 12px rgba(99,102,241,0); }
+  100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); }
+}
+.scan-frame.capturing { animation: framePulse 0.8s ease-out 3; }
+.scan-frame.capturing .corner {
+  border-color: #4ade80 !important;
+  transition: border-color 0.3s ease;
+}
+.ai-analyzing-overlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  border-radius: inherit;
+  z-index: 10; gap: 1rem;
+  backdrop-filter: blur(4px);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.ai-analyzing-overlay.visible { opacity: 1; pointer-events: all; }
+.ai-analyzing-overlay .spinner {
+  width: 52px; height: 52px;
+  border: 3px solid rgba(255,255,255,0.2);
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.ai-analyzing-overlay p {
+  color: #fff; font-size: 0.95rem;
+  font-weight: 600; letter-spacing: 0.02em; margin: 0;
+}
+.ai-analyzing-overlay .ai-sub {
+  color: rgba(255,255,255,0.6); font-size: 0.75rem; margin: 0;
+}
+.step.done span { animation: stepDone 0.3s ease forwards; }
+@keyframes stepDone {
+  0%  { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100%{ transform: scale(1); }
+}
+@keyframes successFlash {
+  0%   { background: rgba(74,222,128,0); }
+  30%  { background: rgba(74,222,128,0.15); }
+  100% { background: rgba(74,222,128,0); }
+}
+.camera-wrap.success-flash { animation: successFlash 0.8s ease forwards; }
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.ai-banner:not(.hidden) { animation: slideInUp 0.3s ease forwards; }
+@keyframes captureReady {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.4); }
+  50%       { box-shadow: 0 0 0 8px rgba(99,102,241,0); }
+}
+#capture-btn { animation: captureReady 2s ease-in-out infinite; }
+#capture-btn:active { animation: none; transform: scale(0.96); }
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════════════ */
+
+/* ── LARGE DESKTOP (1400px+) ─────────────────────────────── */
+@media (min-width: 1400px) {
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+/* ── TABLET (max 1024px) ─────────────────────────────────── */
+@media (max-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .page {
+    padding: 1.5rem;
+  }
+}
+
+/* ── MOBILE (max 768px) ──────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* Show hamburger, hide sidebar off-screen */
+  #sidebar {
+    transform: translateX(-100%);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+  }
+  #sidebar.open {
+    transform: translateX(0);
+  }
+  #main {
+    margin-left: 0;
+  }
+  #menu-toggle {
+    display: flex;
+  }
+
+  /* Page padding */
+  .page { padding: 1rem; }
+
+  /* Stats — 2 columns */
+  .stats-grid { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .stat-card { padding: 1rem; }
+  .stat-card .stat-num { font-size: 1.4rem; }
+
+  /* Cards — single column on small screens */
+  .card-grid { grid-template-columns: 1fr; }
+
+  /* Always show card actions on touch */
+  .card-actions { opacity: 1; }
+
+  /* Form rows — stack */
+  .form-row { grid-template-columns: 1fr; }
+
+  /* Page headers */
+  .page-header h2 { font-size: 1.4rem; }
+  .page-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .page-header-row .btn { width: 100%; justify-content: center; }
+
+  /* Profile — stack */
+  .profile-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .profile-hero .btn { width: 100%; justify-content: center; }
+
+  /* Filter bar — stack */
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .search-wrap { min-width: unset; width: 100%; }
+  .sort-select { width: 100%; }
+  .filter-chips-scroll { width: 100%; }
+
+  /* Modal — slide up from bottom */
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    max-height: 85vh;
+  }
+
+  /* Toast — constrained width */
+  #toast-container {
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+  }
+  .toast {
+    min-width: unset;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Capture button — bigger tap target */
+  .capture-big { padding: 0.9rem 2rem; font-size: 1rem; }
+
+  /* Danger button — full width */
+  #clear-all-btn { width: 100%; justify-content: center; }
+
+  /* Reminder options — stack */
+  .reminder-options { flex-direction: column; }
+
+  /* Form actions — full width on small */
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+  .form-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Section title smaller */
+  .section-title { font-size: 0.85rem; }
+}
+
+/* ── SMALL MOBILE (max 480px) ────────────────────────────── */
+@media (max-width: 480px) {
+  :root { --topbar-h: 56px; }
+
+  .page { padding: 0.875rem; }
+  .stats-grid { gap: 0.5rem; }
+  .stat-card { padding: 0.75rem; gap: 0.75rem; }
+  .stat-card i { font-size: 1.2rem; }
+  .stat-card .stat-num { font-size: 1.2rem; }
+  .stat-card .stat-label { font-size: 0.7rem; }
+
+  .page-header h2 { font-size: 1.25rem; }
+  .page-header .sub { font-size: 0.8rem; }
+
+  .scan-container { max-width: 100%; }
+  .camera-wrap { max-height: 300px; }
+
+  .topbar-title { font-size: 1rem; }
+  .form-card { padding: 1rem; }
+
+  /* Prevent iOS font-size zoom on focus without breaking desktop */
+  input, select, textarea {
+    font-size: max(16px, 0.9rem);
+  }
+}
+
+/* ── VERY SMALL (max 360px) ──────────────────────────────── */
+@media (max-width: 360px) {
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .stat-card { padding: 0.625rem; gap: 0.5rem; }
+  .stat-num { font-size: 1.1rem !important; }
+}
+
+/* ── TOUCH DEVICES — always show card actions ────────────── */
+@media (hover: none) {
+  .card-actions { opacity: 1; }
+}  </style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-inner">
+    <div class="splash-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+    <h1 class="splash-title">Xpiro</h1>
+    <p class="splash-sub">Never let anything expire unseen</p>
+    <div class="splash-loader"><span></span><span></span><span></span></div>
+  </div>
+</div>
+
+<!-- APP SHELL -->
+<div id="app" class="hidden">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div class="sidebar-brand">
+      <i class="fa-solid fa-clock-rotate-left"></i>
+      <span>Xpiro</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-page="dashboard"><i class="fa-solid fa-house"></i><span>Dashboard</span></a>
+      <a href="#" class="nav-item" data-page="scan"><i class="fa-solid fa-camera"></i><span>Scan Item</span></a>
+      <a href="#" class="nav-item" data-page="inventory"><i class="fa-solid fa-boxes-stacked"></i><span>Inventory</span></a>
+      <a href="#" class="nav-item" data-page="reminders"><i class="fa-solid fa-bell"></i><span>Reminders</span><span id="badge-reminders" class="badge hidden">0</span></a>
+      <a href="#" class="nav-item" data-page="history"><i class="fa-solid fa-clock-rotate-left"></i><span>History</span></a>
+      <a href="#" class="nav-item" data-page="profile"><i class="fa-solid fa-user"></i><span>Profile</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <button id="theme-toggle" class="icon-btn" title="Toggle theme">
+        <i class="fa-solid fa-moon" id="theme-icon"></i>
+      </button>
+      <span class="version-tag">v1.0 Beta</span>
+    </div>
+  </aside>
+
+  <!-- SIDEBAR OVERLAY (mobile) -->
+  <div id="sidebar-overlay"></div>
+
+  <!-- MAIN -->
+  <main id="main">
+
+    <!-- TOP BAR -->
+    <header id="topbar">
+      <button id="menu-toggle" class="icon-btn"><i class="fa-solid fa-bars"></i></button>
+      <div class="topbar-title" id="page-title">Dashboard</div>
+      <div class="topbar-actions">
+        <button class="icon-btn" id="notif-btn" style="position:relative;">
+          <i class="fa-solid fa-bell"></i>
+          <span id="topbar-badge" class="badge hidden">0</span>
+        </button>
+        <div class="avatar" id="topbar-avatar">CodeNova</div>
+      </div>
+    </header>
+
+    <!-- PAGE: DASHBOARD -->
+    <section class="page active" id="page-dashboard">
+      <div class="page-header">
+        <h2>Good <span id="greeting-time">Morning</span>, <span id="greeting-name">there</span> 👋</h2>
+        <p class="sub">Your smart expiry radar 🛡️</p>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card accent-red"><i class="fa-solid fa-triangle-exclamation"></i><div><span class="stat-num" id="stat-expired">0</span><span class="stat-label">Expired</span></div></div>
+        <div class="stat-card accent-amber"><i class="fa-solid fa-hourglass-half"></i><div><span class="stat-num" id="stat-soon">0</span><span class="stat-label">Expiring Soon</span></div></div>
+        <div class="stat-card accent-green"><i class="fa-solid fa-circle-check"></i><div><span class="stat-num" id="stat-ok">0</span><span class="stat-label">Good</span></div></div>
+        <div class="stat-card accent-blue"><i class="fa-solid fa-layer-group"></i><div><span class="stat-num" id="stat-total">0</span><span class="stat-label">Total Items</span></div></div>
+      </div>
+      <div class="section-title">🚨 Urgent Attention</div>
+      <div id="urgent-list" class="card-grid"></div>
+      <div id="urgent-empty" class="empty-state hidden"><i class="fa-solid fa-face-smile"></i><p>All items are in good shape!</p></div>
+      <div class="section-title">📦 Recently Added</div>
+      <div id="recent-list" class="card-grid"></div>
+    </section>
+
+    <!-- PAGE: SCAN -->
+    <section class="page hidden" id="page-scan">
+      <div class="page-header">
+        <h2>Scan Item</h2>
+        <p class="sub">Point camera at product &amp; expiry date</p>
+      </div>
+      <div class="scan-container">
+        <div class="steps">
+          <div class="step active" id="step-1"><span>1</span><p>Camera</p></div>
+          <div class="step-line"></div>
+          <div class="step" id="step-2"><span>2</span><p>Detect</p></div>
+          <div class="step-line"></div>
+          <div class="step" id="step-3"><span>3</span><p>Confirm</p></div>
+        </div>
+        <div class="camera-wrap" id="camera-wrap">
+          <video id="camera-feed" autoplay playsinline muted></video>
+          <div class="ai-analyzing-overlay" id="ai-overlay">
+            <div class="spinner"></div>
+            <p>Analyzing with AI...</p>
+            <p class="ai-sub">Detecting product &amp; expiry date</p>
+          </div>
+          <canvas id="scan-canvas" class="hidden"></canvas>
+          <div class="scan-overlay">
+            <div class="scan-frame">
+              <div class="corner tl"></div><div class="corner tr"></div>
+              <div class="corner bl"></div><div class="corner br"></div>
+              <div class="scan-line"></div>
+            </div>
+            <p class="scan-hint">Align product &amp; expiry date in frame</p>
+          </div>
+          <div class="camera-controls">
+            <button class="btn btn-ghost" id="flip-camera-btn" title="Flip camera"><i class="fa-solid fa-rotate"></i></button>
+            <button class="btn btn-primary capture-big" id="capture-btn"><i class="fa-solid fa-camera"></i> Capture</button>
+            <button class="btn btn-ghost" id="upload-btn-cam" title="Upload image"><i class="fa-solid fa-image"></i></button>
+          </div>
+        </div>
+        <div class="divider-text"><span>OR ADD MANUALLY</span></div>
+        <div class="form-card" id="manual-form">
+          <div class="form-group">
+            <label>Product Name <span class="req">*</span></label>
+            <input type="text" id="inp-name" placeholder="e.g. Paracetamol 500mg" autocomplete="off"/>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Category <span class="req">*</span></label>
+              <select id="inp-category">
+                <option value="">Select category</option>
+                <option value="medicine">💊 Medicine</option>
+                <option value="grocery">🛒 Grocery</option>
+                <option value="dairy">🥛 Dairy</option>
+                <option value="snacks">🍿 Snacks</option>
+                <option value="beverage">🧃 Beverage</option>
+                <option value="cosmetic">💄 Cosmetic</option>
+                <option value="cleaning">🧹 Cleaning</option>
+                <option value="other">📦 Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Expiry Date <span class="req">*</span></label>
+              <input type="date" id="inp-expiry"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Brand / Notes</label>
+            <input type="text" id="inp-brand" placeholder="Optional brand or notes"/>
+          </div>
+          <div class="form-group">
+            <label>Reminder Preference</label>
+            <div class="reminder-options">
+              <label class="radio-option"><input type="radio" name="reminder" value="app" checked/><i class="fa-solid fa-mobile-screen"></i> App Notification</label>
+              <label class="radio-option"><input type="radio" name="reminder" value="email"/><i class="fa-solid fa-envelope"></i> Email</label>
+              <label class="radio-option"><input type="radio" name="reminder" value="both"/><i class="fa-solid fa-layer-group"></i> Both</label>
+            </div>
+          </div>
+          <div id="ai-detect-banner" class="ai-banner hidden">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <div><strong>AI Detected:</strong> <span id="ai-detect-text"></span></div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-ghost" id="clear-form-btn">Clear</button>
+            <button class="btn btn-primary" id="add-item-btn"><i class="fa-solid fa-plus"></i> Add Item</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE: INVENTORY -->
+    <section class="page hidden" id="page-inventory">
+      <div class="page-header-row">
+        <div><h2>Inventory</h2><p class="sub">All tracked items</p></div>
+        <button class="btn btn-primary" id="inv-add-btn"><i class="fa-solid fa-plus"></i> Add Item</button>
+      </div>
+      <div class="filter-bar">
+        <div class="search-wrap"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="search-input" placeholder="Search items…"/></div>
+        <div class="filter-chips-scroll">
+          <div class="filter-chips" id="filter-chips">
+            <button class="chip active" data-filter="all">All</button>
+            <button class="chip" data-filter="expired">Expired</button>
+            <button class="chip" data-filter="soon">Expiring Soon</button>
+            <button class="chip" data-filter="medicine">💊 Medicine</button>
+            <button class="chip" data-filter="grocery">🛒 Grocery</button>
+            <button class="chip" data-filter="dairy">🥛 Dairy</button>
+            <button class="chip" data-filter="cosmetic">💄 Cosmetic</button>
+          </div>
+        </div>
+        <select id="sort-select" class="sort-select">
+          <option value="expiry-asc">Expiry ↑</option>
+          <option value="expiry-desc">Expiry ↓</option>
+          <option value="name-asc">Name A–Z</option>
+          <option value="added-desc">Recently Added</option>
+        </select>
+      </div>
+      <div id="inventory-grid" class="card-grid"></div>
+      <div id="inventory-empty" class="empty-state hidden"><i class="fa-solid fa-box-open"></i><p>No items found. Start scanning!</p></div>
+    </section>
+
+    <!-- PAGE: REMINDERS -->
+    <section class="page hidden" id="page-reminders">
+      <div class="page-header">
+        <h2>Reminders</h2>
+        <p class="sub">AI-scheduled alerts for your items</p>
+      </div>
+      <div class="reminder-legend">
+        <div class="legend-item"><span class="dot red"></span>Expired</div>
+        <div class="legend-item"><span class="dot amber"></span>Expiring Soon</div>
+        <div class="legend-item"><span class="dot green"></span>Upcoming</div>
+      </div>
+      <div id="reminders-list" class="reminder-list"></div>
+      <div id="reminders-empty" class="empty-state hidden"><i class="fa-solid fa-calendar-check"></i><p>No reminders set yet!</p></div>
+    </section>
+
+    <!-- PAGE: HISTORY -->
+    <section class="page hidden" id="page-history">
+      <div class="page-header">
+        <h2>History</h2>
+        <p class="sub">All past activity &amp; events</p>
+      </div>
+      <div id="history-list" class="history-list"></div>
+      <div id="history-empty" class="empty-state hidden"><i class="fa-solid fa-scroll"></i><p>No history yet.</p></div>
+    </section>
+
+    <!-- PAGE: PROFILE -->
+    <section class="page hidden" id="page-profile">
+      <div class="profile-hero">
+        <div class="profile-avatar" id="profile-avatar-big">CodeNova</div>
+        <div class="profile-info">
+          <h2 id="profile-display-name">Gyanendra</h2>
+          <p id="profile-email-display"><!-- populated by renderProfile() --></p>
+        </div>
+        <button class="btn btn-ghost" id="edit-profile-btn"><i class="fa-solid fa-pen"></i> Edit</button>
+      </div>
+      <div class="form-card hidden" id="profile-edit-form">
+        <div class="form-row">
+          <div class="form-group"><label>First Name</label><input id="pf-fname" type="text" placeholder="First name"/></div>
+          <div class="form-group"><label>Last Name</label><input id="pf-lname" type="text" placeholder="Last name"/></div>
+        </div>
+        <div class="form-group"><label>Email</label><input id="pf-email" type="email" placeholder="your@email.com"/></div>
+        <div class="form-group">
+          <label>Default Reminder</label>
+          <select id="pf-reminder">
+            <option value="app">App Notification</option>
+            <option value="email">Email</option>
+            <option value="both">Both</option>
+          </select>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-ghost" id="cancel-edit-btn">Cancel</button>
+          <button class="btn btn-primary" id="save-profile-btn">Save</button>
+        </div>
+      </div>
+      <div class="section-title">Your Stats</div>
+      <div class="stats-grid">
+        <div class="stat-card accent-blue"><i class="fa-solid fa-layer-group"></i><div><span class="stat-num" id="prof-total">0</span><span class="stat-label">Total Tracked</span></div></div>
+        <div class="stat-card accent-green"><i class="fa-solid fa-recycle"></i><div><span class="stat-num" id="prof-saved">0</span><span class="stat-label">Items Saved</span></div></div>
+        <div class="stat-card accent-red"><i class="fa-solid fa-trash"></i><div><span class="stat-num" id="prof-wasted">0</span><span class="stat-label">Items Wasted</span></div></div>
+        <div class="stat-card accent-amber"><i class="fa-solid fa-bell"></i><div><span class="stat-num" id="prof-reminders">0</span><span class="stat-label">Reminders Set</span></div></div>
+      </div>
+      <div class="section-title">Preferences</div>
+      <div class="settings-list">
+        <div class="settings-row"><div><i class="fa-solid fa-moon"></i> Dark Mode</div><label class="toggle-switch"><input type="checkbox" id="settings-dark" checked/><span class="slider"></span></label></div>
+        <div class="settings-row"><div><i class="fa-solid fa-bell"></i> App Notifications</div><label class="toggle-switch"><input type="checkbox" id="settings-notif" checked/><span class="slider"></span></label></div>
+        <div class="settings-row"><div><i class="fa-solid fa-envelope"></i> Email Alerts</div><label class="toggle-switch"><input type="checkbox" id="settings-email"/><span class="slider"></span></label></div>
+        <div class="settings-row"><div><i class="fa-solid fa-wand-magic-sparkles"></i> AI Auto-Categorize</div><label class="toggle-switch"><input type="checkbox" id="settings-ai" checked/><span class="slider"></span></label></div>
+      </div>
+      <button class="btn btn-danger" id="clear-all-btn" style="margin-top:1rem;"><i class="fa-solid fa-trash"></i> Clear All Data</button>
+    </section>
+
+  </main>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-title">Item Details</h3>
+      <button class="icon-btn" id="modal-close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast-container"></div>
+
+<!-- CONFIRM DIALOG -->
+<div id="confirm-overlay" class="modal-overlay hidden">
+  <div class="modal confirm-modal">
+    <div class="modal-header"><h3 id="confirm-title">Confirm</h3></div>
+    <div id="confirm-body"><p id="confirm-message"></p></div>
+    <div class="form-actions" style="margin-top:1.5rem">
+      <button class="btn btn-ghost" id="confirm-cancel">Cancel</button>
+      <button class="btn btn-danger" id="confirm-ok">Delete</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="file-upload-input" accept="image/*" capture="environment" style="display:none"/>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   Xpiro — app.js  (fixed)
+   Full application logic: state, camera, AI, notifications,
+   themes, reminders, CRUD
+═══════════════════════════════════════════════════════════ */
+
+"use strict";
+
+/* ── STATE ───────────────────────────────────────────────── */
+let state = {
+  items: [],
+  history: [],
+  // FIX #9: Track which item IDs have already been alerted to avoid duplicate history entries
+  alertedIds: [],
+  profile: { firstName: "Gyanendra", lastName: "", email: "gyanendra9117@gmail.com", reminder: "app" },
+  settings: { dark: true, notifications: true, email: false, ai: true },
+  nextId: 1,
+};
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem("xpiro_state");
+    if (saved) state = { ...state, ...JSON.parse(saved) };
+    // Ensure alertedIds always exists after loading older saved state
+    if (!state.alertedIds) state.alertedIds = [];
+  } catch (e) { console.warn("State load error", e); }
+}
+function saveState() {
+  try { localStorage.setItem("xpiro_state", JSON.stringify(state)); }
+  catch (e) { console.warn("State save error", e); }
+}
+
+/* ── CATEGORY CONFIG ─────────────────────────────────────── */
+const CATEGORY_CONFIG = {
+  medicine:  { emoji: "💊", color: "#ff4d6d", warnDays: 7,  label: "Medicine" },
+  grocery:   { emoji: "🛒", color: "#ffb347", warnDays: 2,  label: "Grocery" },
+  dairy:     { emoji: "🥛", color: "#60a5fa", warnDays: 1,  label: "Dairy" },
+  snacks:    { emoji: "🍿", color: "#f9a825", warnDays: 3,  label: "Snacks" },
+  beverage:  { emoji: "🧃", color: "#4ade80", warnDays: 3,  label: "Beverage" },
+  cosmetic:  { emoji: "💄", color: "#e879f9", warnDays: 14, label: "Cosmetic" },
+  cleaning:  { emoji: "🧹", color: "#67e8f9", warnDays: 7,  label: "Cleaning" },
+  other:     { emoji: "📦", color: "#a0a0a0", warnDays: 5,  label: "Other" },
+};
+
+const AI_KEYWORD_MAP = {
+  paracetamol: "medicine", ibuprofen: "medicine", amoxicillin: "medicine",
+  syrup: "medicine", tablet: "medicine", capsule: "medicine", strip: "medicine",
+  cream: "cosmetic", lotion: "cosmetic", shampoo: "cosmetic", conditioner: "cosmetic",
+  perfume: "cosmetic", moisturizer: "cosmetic", serum: "cosmetic",
+  milk: "dairy", cheese: "dairy", butter: "dairy", curd: "dairy", paneer: "dairy", yogurt: "dairy",
+  biscuit: "snacks", chips: "snacks", cookie: "snacks", cracker: "snacks", wafer: "snacks",
+  rice: "grocery", wheat: "grocery", sugar: "grocery", salt: "grocery", flour: "grocery",
+  dal: "grocery", masala: "grocery", spice: "grocery", oil: "grocery", ghee: "grocery",
+  juice: "beverage", cola: "beverage", water: "beverage", tea: "beverage", coffee: "beverage",
+  soda: "beverage", energy: "beverage",
+  soap: "cleaning", detergent: "cleaning", cleaner: "cleaning", disinfectant: "cleaning",
+  bleach: "cleaning",
+};
+
+function aiGuessCategory(name) {
+  const lower = name.toLowerCase();
+  for (const [kw, cat] of Object.entries(AI_KEYWORD_MAP)) {
+    if (lower.includes(kw)) return cat;
+  }
+  return null;
+}
+
+/* ── DATE HELPERS ────────────────────────────────────────── */
+function today() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+function daysUntilExpiry(expiryStr) {
+  const exp = new Date(expiryStr);
+  exp.setHours(0, 0, 0, 0);
+  const diff = exp - today();
+  return Math.round(diff / (1000 * 60 * 60 * 24));
+}
+function getStatus(item) {
+  const days = daysUntilExpiry(item.expiry);
+  const cfg = CATEGORY_CONFIG[item.category] || CATEGORY_CONFIG.other;
+  if (days < 0) return "expired";
+  if (days <= cfg.warnDays) return "soon";
+  return "ok";
+}
+function formatDate(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+}
+function formatRelativeTime(ts) {
+  const diff = Date.now() - ts;
+  if (diff < 60000) return "Just now";
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  return `${Math.floor(diff / 86400000)}d ago`;
+}
+function getReminderDate(item) {
+  const cfg = CATEGORY_CONFIG[item.category] || CATEGORY_CONFIG.other;
+  const exp = new Date(item.expiry);
+  exp.setDate(exp.getDate() - cfg.warnDays);
+  return exp;
+}
+
+/* ── TOAST ───────────────────────────────────────────────── */
+function toast(msg, type = "info", duration = 3500) {
+  const icons = { success: "fa-circle-check", error: "fa-circle-xmark", info: "fa-circle-info", warn: "fa-triangle-exclamation" };
+  const tc = document.getElementById("toast-container");
+  const t = document.createElement("div");
+  t.className = `toast ${type}`;
+  t.innerHTML = `<i class="fa-solid ${icons[type] || icons.info}"></i><span>${msg}</span><span class="toast-close"><i class="fa-solid fa-xmark"></i></span>`;
+  t.querySelector(".toast-close").onclick = () => t.remove();
+  tc.appendChild(t);
+  setTimeout(() => {
+    t.style.opacity = "0";
+    t.style.transform = "translateX(20px)";
+    t.style.transition = "all 0.3s";
+    setTimeout(() => t.remove(), 300);
+  }, duration);
+}
+
+/* ── CONFIRM DIALOG ──────────────────────────────────────── */
+// FIX #10: Re-query buttons by ID inside each handler so stale detached
+// node references after cloneNode() can never break subsequent calls.
+function confirmDialog(title, message) {
+  return new Promise(resolve => {
+    const overlay = document.getElementById("confirm-overlay");
+    document.getElementById("confirm-title").textContent = title;
+    document.getElementById("confirm-message").textContent = message;
+    overlay.classList.remove("hidden");
+
+    // Always query fresh references immediately before attaching handlers
+    document.getElementById("confirm-ok").onclick = () => {
+      overlay.classList.add("hidden");
+      // Reset handlers to prevent accidental double-fire
+      document.getElementById("confirm-ok").onclick = null;
+      document.getElementById("confirm-cancel").onclick = null;
+      resolve(true);
+    };
+    document.getElementById("confirm-cancel").onclick = () => {
+      overlay.classList.add("hidden");
+      document.getElementById("confirm-ok").onclick = null;
+      document.getElementById("confirm-cancel").onclick = null;
+      resolve(false);
+    };
+  });
+}
+
+/* ── HISTORY LOGGING ─────────────────────────────────────── */
+function logHistory(type, message) {
+  state.history.unshift({ type, message, ts: Date.now() });
+  if (state.history.length > 100) state.history = state.history.slice(0, 100);
+  saveState();
+}
+
+/* ── NAVIGATION ──────────────────────────────────────────── */
+const PAGE_TITLES = {
+  dashboard: "Dashboard",
+  scan: "Scan Item",
+  inventory: "Inventory",
+  reminders: "Reminders",
+  history: "History",
+  profile: "Profile",
+};
+let currentPage = "dashboard";
+
+function navigateTo(page) {
+  document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  const target = document.getElementById(`page-${page}`);
+  if (target) { target.classList.remove("hidden"); target.classList.add("active"); }
+  document.querySelectorAll(`.nav-item[data-page="${page}"]`).forEach(n => n.classList.add("active"));
+  document.getElementById("page-title").textContent = PAGE_TITLES[page] || page;
+  currentPage = page;
+  renderPage(page);
+  // Close mobile sidebar
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("sidebar-overlay");
+  if (sidebar) sidebar.classList.remove("open");
+  if (overlay) overlay.classList.remove("visible");
+}
+
+function renderPage(page) {
+  switch (page) {
+    case "dashboard":  renderDashboard(); break;
+    case "inventory":  renderInventory(); break;
+    case "reminders":  renderReminders(); break;
+    case "history":    renderHistory();   break;
+    case "profile":    renderProfile();   break;
+  }
+}
+
+/* ── DASHBOARD ───────────────────────────────────────────── */
+function renderDashboard() {
+  const expired = state.items.filter(i => getStatus(i) === "expired");
+  const soon    = state.items.filter(i => getStatus(i) === "soon");
+  const ok      = state.items.filter(i => getStatus(i) === "ok");
+  document.getElementById("stat-expired").textContent = expired.length;
+  document.getElementById("stat-soon").textContent    = soon.length;
+  document.getElementById("stat-ok").textContent      = ok.length;
+  document.getElementById("stat-total").textContent   = state.items.length;
+
+  const h = new Date().getHours();
+  const greet = h < 12 ? "Morning" : h < 17 ? "Afternoon" : "Evening";
+  document.getElementById("greeting-time").textContent = greet;
+  document.getElementById("greeting-name").textContent = state.profile.firstName;
+
+  const urgentList = document.getElementById("urgent-list");
+  const urgentEmpty = document.getElementById("urgent-empty");
+  const urgent = [...expired, ...soon].sort((a, b) => new Date(a.expiry) - new Date(b.expiry)).slice(0, 6);
+  urgentList.innerHTML = "";
+  if (urgent.length === 0) {
+    urgentEmpty.classList.remove("hidden");
+  } else {
+    urgentEmpty.classList.add("hidden");
+    urgent.forEach(i => urgentList.appendChild(buildItemCard(i)));
+  }
+
+  const recentList = document.getElementById("recent-list");
+  recentList.innerHTML = "";
+  const recent = [...state.items].sort((a, b) => b.addedAt - a.addedAt).slice(0, 6);
+  recent.forEach(i => recentList.appendChild(buildItemCard(i)));
+
+  updateBadges();
+}
+
+/* ── ITEM CARD ───────────────────────────────────────────── */
+function buildItemCard(item) {
+  const status = getStatus(item);
+  const cfg = CATEGORY_CONFIG[item.category] || CATEGORY_CONFIG.other;
+  const days = daysUntilExpiry(item.expiry);
+  const card = document.createElement("div");
+  card.className = `item-card status-${status}`;
+  card.dataset.id = item.id;
+
+  let daysTxt = "";
+  if (days < 0) daysTxt = `Expired ${Math.abs(days)}d ago`;
+  else if (days === 0) daysTxt = "Expires today!";
+  else daysTxt = `${days}d remaining`;
+
+  const reminderIcons = { app: "fa-mobile-screen", email: "fa-envelope", both: "fa-layer-group" };
+  const rIcon = reminderIcons[item.reminder] || "fa-bell";
+
+  // FIX #3: Card action buttons use data attributes; listeners are attached
+  // via addEventListener after DOM insertion — avoids the broken window.event reference.
+  card.innerHTML = `
+    <div class="card-top">
+      <div class="card-emoji">${cfg.emoji}</div>
+      <div class="card-actions">
+        <button class="btn-icon-sm edit" data-id="${item.id}" data-action="edit" title="Edit"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn-icon-sm" data-id="${item.id}" data-action="delete" title="Delete"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>
+    <div class="card-name" title="${escHtml(item.name)}">${escHtml(item.name)}</div>
+    <div class="card-brand">${escHtml(item.brand || item.category)}</div>
+    <div class="card-expiry">
+      <span class="expiry-badge ${status}">${formatDate(item.expiry)}</span>
+      <span class="days-left">${daysTxt}</span>
+    </div>
+    <div class="card-footer">
+      <span class="category-tag">${cfg.label}</span>
+      <span class="reminder-icon" title="Reminder: ${item.reminder}"><i class="fa-solid ${rIcon}"></i></span>
+    </div>
+  `;
+
+  card.querySelector('[data-action="edit"]').addEventListener("click", e => {
+    e.stopPropagation();
+    editItem(item.id, e);
+  });
+  card.querySelector('[data-action="delete"]').addEventListener("click", e => {
+    e.stopPropagation();
+    deleteItem(item.id, e);
+  });
+
+  card.addEventListener("click", () => openItemModal(item));
+  return card;
+}
+
+function escHtml(s) {
+  return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/* ── INVENTORY ───────────────────────────────────────────── */
+let invFilter = "all";
+let invSearch = "";
+let invSort   = "expiry-asc";
+
+function renderInventory() {
+  let items = [...state.items];
+
+  if (invFilter === "expired") items = items.filter(i => getStatus(i) === "expired");
+  else if (invFilter === "soon") items = items.filter(i => getStatus(i) === "soon");
+  else if (invFilter !== "all") items = items.filter(i => i.category === invFilter);
+
+  if (invSearch.trim()) {
+    const q = invSearch.toLowerCase();
+    items = items.filter(i =>
+      i.name.toLowerCase().includes(q) ||
+      (i.brand || "").toLowerCase().includes(q) ||
+      // FIX #12: toLowerCase() on category for consistent case-insensitive matching
+      i.category.toLowerCase().includes(q)
+    );
+  }
+
+  if (invSort === "expiry-asc") items.sort((a, b) => new Date(a.expiry) - new Date(b.expiry));
+  else if (invSort === "expiry-desc") items.sort((a, b) => new Date(b.expiry) - new Date(a.expiry));
+  else if (invSort === "name-asc") items.sort((a, b) => a.name.localeCompare(b.name));
+  else if (invSort === "added-desc") items.sort((a, b) => b.addedAt - a.addedAt);
+
+  const grid  = document.getElementById("inventory-grid");
+  const empty = document.getElementById("inventory-empty");
+  grid.innerHTML = "";
+  if (items.length === 0) {
+    empty.classList.remove("hidden");
+  } else {
+    empty.classList.add("hidden");
+    items.forEach(i => grid.appendChild(buildItemCard(i)));
+  }
+}
+
+/* ── REMINDERS ───────────────────────────────────────────── */
+function renderReminders() {
+  const list  = document.getElementById("reminders-list");
+  const empty = document.getElementById("reminders-empty");
+  list.innerHTML = "";
+
+  const sorted = [...state.items].sort((a, b) => new Date(a.expiry) - new Date(b.expiry));
+  if (sorted.length === 0) { empty.classList.remove("hidden"); return; }
+  empty.classList.add("hidden");
+
+  sorted.forEach(item => {
+    const status  = getStatus(item);
+    const days    = daysUntilExpiry(item.expiry);
+    const cfg     = CATEGORY_CONFIG[item.category] || CATEGORY_CONFIG.other;
+    const remDate = getReminderDate(item);
+    const dotCls  = status === "expired" ? "red" : status === "soon" ? "amber" : "green";
+    const badgeCls = status === "expired" ? "expired" : status === "soon" ? "soon" : "scheduled";
+    let badgeTxt = status === "expired" ? "EXPIRED" : status === "soon" ? `${days}d LEFT` : "Scheduled";
+
+    const row = document.createElement("div");
+    row.className = "reminder-row";
+    row.innerHTML = `
+      <div class="reminder-dot" style="background:${dotCls === 'red' ? 'var(--red)' : dotCls === 'amber' ? 'var(--amber)' : 'var(--green)'}"></div>
+      <div class="reminder-info">
+        <div class="reminder-name">${cfg.emoji} ${escHtml(item.name)}</div>
+        <div class="reminder-meta">
+          Reminder: ${item.reminder === "app" ? "📱 App" : item.reminder === "email" ? "📧 Email" : "📱+📧 Both"} &nbsp;·&nbsp;
+          Alert set for: <strong>${remDate.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</strong>
+          &nbsp;·&nbsp; Expires: ${formatDate(item.expiry)}
+        </div>
+      </div>
+      <span class="reminder-badge ${badgeCls}">${badgeTxt}</span>
+    `;
+    list.appendChild(row);
+  });
+}
+
+/* ── HISTORY ─────────────────────────────────────────────── */
+function renderHistory() {
+  const list  = document.getElementById("history-list");
+  const empty = document.getElementById("history-empty");
+  list.innerHTML = "";
+  if (state.history.length === 0) { empty.classList.remove("hidden"); return; }
+  empty.classList.add("hidden");
+
+  const typeConfig = {
+    add:    { cls: "add",    icon: "fa-plus" },
+    delete: { cls: "delete", icon: "fa-trash" },
+    expire: { cls: "expire", icon: "fa-triangle-exclamation" },
+    scan:   { cls: "scan",   icon: "fa-camera" },
+    remind: { cls: "remind", icon: "fa-bell" },
+    // FIX #16: "edit" type must use its own CSS class ("edit"), not "scan"
+    edit:   { cls: "edit",   icon: "fa-pen" },
+    system: { cls: "remind", icon: "fa-gear" },
+  };
+
+  state.history.forEach((h, idx) => {
+    const cfg = typeConfig[h.type] || typeConfig.system;
+    const div = document.createElement("div");
+    div.className = "history-item";
+    div.innerHTML = `
+      <div class="history-dot-wrap">
+        <div class="history-dot ${cfg.cls}"></div>
+        ${idx < state.history.length - 1 ? '<div class="history-line"></div>' : ''}
+      </div>
+      <div class="history-content">
+        <div class="history-title">${escHtml(h.message)}</div>
+        <div class="history-time">${formatRelativeTime(h.ts)}</div>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+/* ── PROFILE ─────────────────────────────────────────────── */
+function renderProfile() {
+  const p = state.profile;
+  const fullName = `${p.firstName} ${p.lastName}`.trim();
+  const initials = `${(p.firstName[0] || "?").toUpperCase()}${(p.lastName[0] || "").toUpperCase()}`;
+  document.getElementById("profile-display-name").textContent = fullName;
+  // FIX #14: Always render email from JS state, not from hardcoded HTML (avoids Cloudflare obfuscation)
+  document.getElementById("profile-email-display").textContent = p.email;
+  document.getElementById("profile-avatar-big").textContent = initials;
+  document.getElementById("topbar-avatar").textContent = initials;
+
+  document.getElementById("prof-total").textContent    = state.items.length;
+  document.getElementById("prof-saved").textContent    = state.history.filter(h => h.type === "add").length;
+  document.getElementById("prof-wasted").textContent   = state.history.filter(h => h.type === "expire").length;
+
+  // FIX #8: Count only items that have a non-default (email or both) reminder, not all items
+  const withReminder = state.items.filter(i => i.reminder === "email" || i.reminder === "both").length;
+  document.getElementById("prof-reminders").textContent = withReminder;
+
+  document.getElementById("settings-dark").checked  = state.settings.dark;
+  document.getElementById("settings-notif").checked = state.settings.notifications;
+  document.getElementById("settings-email").checked = state.settings.email;
+  document.getElementById("settings-ai").checked    = state.settings.ai;
+
+  document.getElementById("pf-fname").value    = p.firstName;
+  document.getElementById("pf-lname").value    = p.lastName;
+  document.getElementById("pf-email").value    = p.email;
+  document.getElementById("pf-reminder").value = p.reminder;
+}
+
+/* ── ADD / EDIT ITEM ─────────────────────────────────────── */
+let editingItemId = null;
+
+function getFormData() {
+  const name     = document.getElementById("inp-name").value.trim();
+  const category = document.getElementById("inp-category").value;
+  const expiry   = document.getElementById("inp-expiry").value;
+  const brand    = document.getElementById("inp-brand").value.trim();
+  const reminder = document.querySelector('input[name="reminder"]:checked')?.value || "app";
+  return { name, category, expiry, brand, reminder };
+}
+
+function clearForm() {
+  document.getElementById("inp-name").value     = "";
+  document.getElementById("inp-category").value = "";
+  document.getElementById("inp-expiry").value   = "";
+  document.getElementById("inp-brand").value    = "";
+  const appRadio = document.querySelector('input[name="reminder"][value="app"]');
+  if (appRadio) appRadio.checked = true;
+  document.getElementById("ai-detect-banner").classList.add("hidden");
+  setStep(1);
+  editingItemId = null;
+}
+
+function addOrUpdateItem() {
+  const { name, category, expiry, brand, reminder } = getFormData();
+  if (!name) { toast("Product name is required", "error"); return; }
+  if (!category) { toast("Please select a category", "error"); return; }
+  if (!expiry) { toast("Expiry date is required", "error"); return; }
+
+  if (editingItemId !== null) {
+    const idx = state.items.findIndex(i => i.id === editingItemId);
+    if (idx !== -1) {
+      state.items[idx] = { ...state.items[idx], name, category, expiry, brand, reminder };
+      logHistory("edit", `Edited "${name}"`);
+      toast(`"${name}" updated!`, "success");
+    }
+    editingItemId = null;
+  } else {
+    const newItem = { id: state.nextId++, name, category, expiry, brand, reminder, addedAt: Date.now() };
+    state.items.unshift(newItem);
+    scheduleReminderFor(newItem);
+    logHistory("add", `Added "${name}" (${(CATEGORY_CONFIG[category] || CATEGORY_CONFIG.other).label}) — expires ${formatDate(expiry)}`);
+    toast(`"${name}" added successfully!`, "success");
+    setStep(3);
+  }
+
+  saveState();
+  // FIX #13: clearForm() is called after saveState() to ensure state is fully persisted
+  // before editingItemId is reset to null. Keep saveState() synchronous.
+  clearForm();
+  updateBadges();
+  if (currentPage === "dashboard") renderDashboard();
+  if (currentPage === "inventory") renderInventory();
+}
+
+function editItem(id, event) {
+  event.stopPropagation();
+  const item = state.items.find(i => i.id === id);
+  if (!item) return;
+  editingItemId = id;
+  document.getElementById("inp-name").value     = item.name;
+  document.getElementById("inp-category").value = item.category;
+  document.getElementById("inp-expiry").value   = item.expiry;
+  document.getElementById("inp-brand").value    = item.brand || "";
+  const rmEl = document.querySelector(`input[name="reminder"][value="${item.reminder}"]`);
+  if (rmEl) rmEl.checked = true;
+  document.getElementById("add-item-btn").innerHTML = '<i class="fa-solid fa-save"></i> Update Item';
+  navigateTo("scan");
+  setStep(1);
+}
+
+async function deleteItem(id, event) {
+  event.stopPropagation();
+  const item = state.items.find(i => i.id === id);
+  if (!item) return;
+  const ok = await confirmDialog("Delete Item", `Delete "${item.name}"? This cannot be undone.`);
+  if (!ok) return;
+  state.items = state.items.filter(i => i.id !== id);
+  // Also remove from alertedIds to keep state clean
+  state.alertedIds = state.alertedIds.filter(aid => aid !== id);
+  logHistory("delete", `Deleted "${item.name}"`);
+  toast(`"${item.name}" removed`, "warn");
+  saveState();
+  updateBadges();
+  renderPage(currentPage);
+}
+
+/* ── MODAL ───────────────────────────────────────────────── */
+// FIX #3 (modal): Replace inline onclick strings referencing window.event
+// with proper addEventListener calls after injecting modal HTML.
+function openItemModal(item) {
+  const status = getStatus(item);
+  const cfg = CATEGORY_CONFIG[item.category] || CATEGORY_CONFIG.other;
+  const days = daysUntilExpiry(item.expiry);
+  let daysTxt = days < 0 ? `Expired ${Math.abs(days)} day(s) ago` : days === 0 ? "Expires today!" : `${days} day(s) remaining`;
+  const remDate = getReminderDate(item);
+  const reminderLabels = { app: "📱 App Notification", email: "📧 Email", both: "📱 + 📧 Both" };
+
+  document.getElementById("modal-title").textContent = `${cfg.emoji} ${item.name}`;
+  document.getElementById("modal-body").innerHTML = `
+    <div class="modal-detail-row"><span class="lbl">Category</span><span class="val">${cfg.emoji} ${cfg.label}</span></div>
+    <div class="modal-detail-row"><span class="lbl">Brand / Notes</span><span class="val">${escHtml(item.brand) || "—"}</span></div>
+    <div class="modal-detail-row"><span class="lbl">Expiry Date</span><span class="val">${formatDate(item.expiry)}</span></div>
+    <div class="modal-detail-row"><span class="lbl">Status</span><span class="val"><span class="expiry-badge ${status}">${status === "expired" ? "EXPIRED" : status === "soon" ? "EXPIRING SOON" : "GOOD"}</span></span></div>
+    <div class="modal-detail-row"><span class="lbl">Days</span><span class="val">${daysTxt}</span></div>
+    <div class="modal-detail-row"><span class="lbl">Reminder Set For</span><span class="val">${remDate.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span></div>
+    <div class="modal-detail-row"><span class="lbl">Reminder Channel</span><span class="val">${reminderLabels[item.reminder] || item.reminder}</span></div>
+    <div class="modal-detail-row"><span class="lbl">Added On</span><span class="val">${new Date(item.addedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="modal-edit-btn"><i class="fa-solid fa-pen"></i> Edit</button>
+      <button class="btn btn-danger" id="modal-delete-btn"><i class="fa-solid fa-trash"></i> Delete</button>
+    </div>
+  `;
+
+  // Attach proper event listeners — no window.event reference
+  document.getElementById("modal-edit-btn").addEventListener("click", (e) => {
+    editItem(item.id, e);
+    closeModal();
+  });
+  document.getElementById("modal-delete-btn").addEventListener("click", (e) => {
+    deleteItem(item.id, e);
+    closeModal();
+  });
+
+  document.getElementById("modal-overlay").classList.remove("hidden");
+}
+
+function closeModal() {
+  document.getElementById("modal-overlay").classList.add("hidden");
+}
+
+/* ── BADGE UPDATE ────────────────────────────────────────── */
+function updateBadges() {
+  const urgent = state.items.filter(i => getStatus(i) !== "ok").length;
+  const badgeEl  = document.getElementById("badge-reminders");
+  const topBadge = document.getElementById("topbar-badge");
+  if (urgent > 0) {
+    if (badgeEl)  { badgeEl.textContent  = urgent; badgeEl.classList.remove("hidden"); }
+    if (topBadge) { topBadge.textContent = urgent; topBadge.classList.remove("hidden"); }
+  } else {
+    if (badgeEl)  badgeEl.classList.add("hidden");
+    if (topBadge) topBadge.classList.add("hidden");
+  }
+}
+
+/* ── STEPS ───────────────────────────────────────────────── */
+function setStep(n) {
+  for (let i = 1; i <= 3; i++) {
+    const el = document.getElementById(`step-${i}`);
+    if (!el) continue;
+    el.classList.remove("active", "done");
+    if (i < n) el.classList.add("done");
+    else if (i === n) el.classList.add("active");
+  }
+}
+
+/* ── AI AUTO-CATEGORIZE ──────────────────────────────────── */
+// FIX #17: Remove the else branch that hid the banner when category was
+// already set by the user — let it persist without interference.
+function aiAutoDetect(name) {
+  if (!state.settings.ai || !name.trim()) return;
+  const guessed = aiGuessCategory(name);
+  if (guessed && !document.getElementById("inp-category").value) {
+    document.getElementById("inp-category").value = guessed;
+    const cfg = CATEGORY_CONFIG[guessed];
+    document.getElementById("ai-detect-text").textContent = `Category set to "${cfg.label}" (${cfg.warnDays}d reminder)`;
+    document.getElementById("ai-detect-banner").classList.remove("hidden");
+  }
+  // Intentionally no else clause — banner state is not modified when category is already set
+}
+
+/* ── CAMERA ──────────────────────────────────────────────── */
+let stream = null;
+let facingMode = "environment";
+
+async function startCamera() {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    const video = document.getElementById("camera-feed");
+    video.srcObject = stream;
+    video.style.transform = facingMode === "user" ? "scaleX(-1)" : "scaleX(1)";
+    setStep(1);
+  } catch (e) {
+    toast("Camera access denied. Please allow camera permission.", "error");
+    console.warn("Camera error:", e);
+  }
+}
+
+function stopCamera() {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+}
+
+/* FIX #18: Guard against capturing before the video stream is ready.
+   video.readyState >= 2 (HAVE_CURRENT_DATA) ensures a valid frame exists. */
+function captureFrameFromVideo() {
+  const video  = document.getElementById("camera-feed");
+  if (video.readyState < 2) {
+    throw new Error("Camera not ready yet — please wait a moment and try again.");
+  }
+  const canvas = document.getElementById("scan-canvas");
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext("2d");
+  if (facingMode === "user") {
+    ctx.save();
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+    ctx.restore();
+  } else {
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  }
+  return canvas.toDataURL("image/jpeg", 0.85).split(",")[1];
+}
+
+function captureFrameFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.getElementById("scan-canvas");
+        canvas.width  = img.width;
+        canvas.height = img.height;
+        canvas.getContext("2d").drawImage(img, 0, 0);
+        resolve(canvas.toDataURL("image/jpeg", 0.85).split(",")[1]);
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function analyzeWithNvidia(base64Image) {
+  const ocrResponse = await fetch("http://127.0.0.1:5000/scan", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ image: base64Image })
+  });
+
+  if (!ocrResponse.ok) {
+    const err = await ocrResponse.json();
+    throw new Error(err.error || "Server error");
+  }
+
+  const ocrText = (await ocrResponse.json()).text;
+
+  if (!ocrText || !ocrText.trim()) throw new Error("No text detected in image");
+  console.log("OCR raw text:", ocrText);
+
+  return parseOcrText(ocrText);
+}
+
+function parseOcrText(text) {
+  const result = { name: null, category: null, expiryDate: null, brand: null };
+
+  // ── Extract expiry date ───────────────────────────────────
+  const datePatterns = [
+    /(?:exp(?:iry)?|expiration|best\s*before|use\s*by|bb|exp\.?\s*date)[:\s.]*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+    /(?:exp(?:iry)?|expiration|best\s*before|use\s*by|bb)[:\s.]*(\d{1,2}\s+\w{3,9}\s+\d{2,4})/i,
+    /(?:exp(?:iry)?|expiration|best\s*before|use\s*by|bb)[:\s.]*(\w{3,9}\s+\d{4})/i,
+    /(?:exp(?:iry)?|expiration|best\s*before|use\s*by)[:\s.]*(\d{2,4}[\/\-\.]\d{1,2})/i,
+    /(?:exp|expiry|best before|use by)[:\s]*\n\s*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+  ];
+  for (const pattern of datePatterns) {
+    const match = text.match(pattern);
+    if (match) { result.expiryDate = normalizeDateStr(match[1]); break; }
+  }
+
+  // ── Extract product name (first meaningful line) ──────────
+  const lines = text.split(/\n/).map(l => l.trim()).filter(l => l.length > 2);
+  const nameLine = lines.find(l =>
+    !/^\d[\d\s\-\/\.]{4,}$/.test(l) &&
+    !/^(?:exp|mfg|mfd|lot|batch|mrp|rs\.)/i.test(l)
+  );
+  // FIX #11: Expanded allowlist to preserve common product-name characters
+  // (+, /, &, (, ), @) — only strip actual HTML-unsafe and control characters.
+  if (nameLine) result.name = nameLine.replace(/[<>"'\\]/g, "").trim().slice(0, 60);
+
+  // ── Extract brand (ALL CAPS short line) ───────────────────
+  const brandLine = lines.find(l => /^[A-Z][A-Z\s]{2,}$/.test(l) && l.length < 30);
+  if (brandLine && brandLine !== result.name) result.brand = brandLine;
+
+  // ── Guess category from full OCR text ────────────────────
+  result.category = aiGuessCategory(text) || aiGuessCategory(result.name || "") || "other";
+
+  return result;
+}
+
+function normalizeDateStr(raw) {
+  if (!raw) return null;
+  try {
+    const s = raw.trim();
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+    const dmy = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
+    if (dmy) {
+      const y = dmy[3].length === 2 ? "20" + dmy[3] : dmy[3];
+      return `${y}-${dmy[2].padStart(2,"0")}-${dmy[1].padStart(2,"0")}`;
+    }
+
+    const my = s.match(/^(\d{1,2})[\/\-\.](\d{4})$/);
+    if (my) {
+      const lastDay = new Date(parseInt(my[2]), parseInt(my[1]), 0).getDate();
+      return `${my[2]}-${my[1].padStart(2,"0")}-${String(lastDay).padStart(2,"0")}`;
+    }
+
+    const months = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+    const mY = s.match(/^(\w{3,9})\s+(\d{4})$/i);
+    if (mY) {
+      const m = months[mY[1].toLowerCase().slice(0,3)];
+      if (m) {
+        const lastDay = new Date(parseInt(mY[2]), m, 0).getDate();
+        return `${mY[2]}-${String(m).padStart(2,"0")}-${String(lastDay).padStart(2,"0")}`;
+      }
+    }
+
+    const dMY = s.match(/^(\d{1,2})\s+(\w{3,9})\s+(\d{4})$/i);
+    if (dMY) {
+      const m = months[dMY[2].toLowerCase().slice(0,3)];
+      if (m) return `${dMY[3]}-${String(m).padStart(2,"0")}-${dMY[1].padStart(2,"0")}`;
+    }
+
+    return null;
+  } catch { return null; }
+}
+
+function fillFormWithResult(result) {
+  if (result.name)     document.getElementById("inp-name").value     = result.name;
+  if (result.category) document.getElementById("inp-category").value = result.category;
+  if (result.brand)    document.getElementById("inp-brand").value    = result.brand;
+
+  if (result.expiryDate) {
+    document.getElementById("inp-expiry").value = result.expiryDate;
+  } else {
+    document.getElementById("inp-expiry").value = "";
+    toast("⚠️ Expiry date not visible — please enter it manually", "warn", 5000);
+  }
+
+  const cfg = CATEGORY_CONFIG[result.category] || CATEGORY_CONFIG.other;
+  document.getElementById("ai-detect-text").textContent =
+    `Detected "${result.name}" — ${cfg.label} (reminder: ${cfg.warnDays}d before expiry)`;
+  document.getElementById("ai-detect-banner").classList.remove("hidden");
+}
+
+async function simulateCapture() {
+  try {
+    setStep(2);
+    const frame   = document.querySelector(".scan-frame");
+    const overlay = document.getElementById("ai-overlay");
+    const wrap    = document.querySelector(".camera-wrap");
+    frame?.classList.add("capturing");
+    overlay?.classList.add("visible");
+
+    const base64Image = captureFrameFromVideo();
+    const result      = await analyzeWithNvidia(base64Image);
+
+    overlay?.classList.remove("visible");
+    frame?.classList.remove("capturing");
+    wrap?.classList.add("success-flash");
+    setTimeout(() => wrap?.classList.remove("success-flash"), 800);
+
+    fillFormWithResult(result);
+    setStep(3);
+    toast("✅ AI detected product details!", "success");
+  } catch (err) {
+    console.error("Scan error:", err);
+    document.getElementById("ai-overlay")?.classList.remove("visible");
+    document.querySelector(".scan-frame")?.classList.remove("capturing");
+    setStep(1);
+    toast(`Scan failed: ${err.message}. Try again or add manually.`, "error", 5000);
+  }
+}
+
+async function handleFileUpload(file) {
+  if (!file) return;
+  try {
+    setStep(2);
+    const overlay = document.getElementById("ai-overlay");
+    overlay?.classList.add("visible");
+    const base64Image = await captureFrameFromFile(file);
+    const result      = await analyzeWithNvidia(base64Image);
+    overlay?.classList.remove("visible");
+    fillFormWithResult(result);
+    setStep(3);
+    toast("✅ AI detected product details!", "success");
+  } catch (err) {
+    console.error("Upload scan error:", err);
+    document.getElementById("ai-overlay")?.classList.remove("visible");
+    setStep(1);
+    toast(`Could not analyze image: ${err.message}`, "error", 5000);
+  }
+}
+
+/* ── NOTIFICATION / REMINDER ─────────────────────────────── */
+// FIX #4: Email reminder option now shows a clear "not yet implemented" notice
+// rather than silently doing nothing. The toggle persists as intended.
+function scheduleReminderFor(item) {
+  const status = getStatus(item);
+  const cfg = CATEGORY_CONFIG[item.category] || CATEGORY_CONFIG.other;
+  logHistory("remind", `Reminder set: "${item.name}" — alert ${cfg.warnDays}d before expiry via ${item.reminder}`);
+
+  if (item.reminder === "email" || item.reminder === "both") {
+    // Email dispatch is not yet implemented server-side.
+    // Show an informational toast so the user knows what to expect.
+    toast("📧 Email reminders will be supported in a future update. App notifications are active.", "info", 5000);
+  }
+
+  if (status === "expired") {
+    setTimeout(() => toast(`⚠️ "${item.name}" has EXPIRED!`, "error", 5000), 100);
+  } else if (status === "soon") {
+    const days = daysUntilExpiry(item.expiry);
+    setTimeout(() => toast(`🔔 "${item.name}" expires in ${days} day(s)!`, "warn", 5000), 800);
+  }
+  if (state.settings.notifications && "Notification" in window) {
+    Notification.requestPermission().then(perm => {
+      if (perm === "granted") {
+        if (status === "expired" || status === "soon") {
+          const days = daysUntilExpiry(item.expiry);
+          new Notification("Xpiro Alert ⏱️", {
+            body: days < 0 ? `${item.name} has EXPIRED!` : `${item.name} expires in ${days} days!`,
+            icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>"
+          });
+        }
+      }
+    });
+  }
+}
+
+// FIX #9: Track alerted item IDs in state.alertedIds to prevent duplicate
+// history entries from accumulating every time the page loads.
+function checkAllExpiryAlerts() {
+  let changed = false;
+  state.items.forEach(item => {
+    if (getStatus(item) !== "ok" && !state.alertedIds.includes(item.id)) {
+      logHistory("expire", `Alert: "${item.name}" is ${getStatus(item)}`);
+      state.alertedIds.push(item.id);
+      changed = true;
+    }
+  });
+  if (changed) saveState();
+}
+
+/* ── THEME ───────────────────────────────────────────────── */
+function setTheme(dark) {
+  state.settings.dark = dark;
+  document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+  const icon = document.getElementById("theme-icon");
+  if (icon) icon.className = dark ? "fa-solid fa-moon" : "fa-solid fa-sun";
+  const toggle = document.getElementById("settings-dark");
+  if (toggle) toggle.checked = dark;
+  saveState();
+}
+
+/* ── SEED DEMO DATA ──────────────────────────────────────── */
+function seedDemoData() {
+  if (state.items.length > 0) return;
+  const now = new Date();
+  const addDays = d => { const dt = new Date(now); dt.setDate(dt.getDate() + d); return dt.toISOString().split("T")[0]; };
+  const demos = [
+    { name: "Paracetamol 500mg",  category: "medicine", brand: "Cipla",       expiry: addDays(5),   reminder: "app" },
+    { name: "Full Cream Milk",    category: "dairy",    brand: "Amul",        expiry: addDays(1),   reminder: "app" },
+    { name: "Basmati Rice 5kg",   category: "grocery",  brand: "India Gate",  expiry: addDays(90),  reminder: "email" },
+    { name: "Moisturizing Cream", category: "cosmetic", brand: "Nivea",       expiry: addDays(200), reminder: "both" },
+    { name: "Orange Juice",       category: "beverage", brand: "Tropicana",   expiry: addDays(-2),  reminder: "app" },
+    { name: "Amoxicillin 250mg",  category: "medicine", brand: "Sun Pharma",  expiry: addDays(3),   reminder: "both" },
+    { name: "Cheddar Cheese",     category: "dairy",    brand: "Amul",        expiry: addDays(6),   reminder: "app" },
+    { name: "Lays Chips",         category: "snacks",   brand: "PepsiCo",     expiry: addDays(30),  reminder: "app" },
+  ];
+  demos.forEach(d => {
+    state.items.push({ id: state.nextId++, addedAt: Date.now(), ...d });
+  });
+  logHistory("system", "Demo data loaded — welcome to Xpiro!");
+  // FIX #15: saveState() was missing — demo items are now persisted immediately
+  saveState();
+}
+
+/* ── BOOTSTRAP ───────────────────────────────────────────── */
+document.addEventListener("DOMContentLoaded", () => {
+  loadState();
+  seedDemoData();
+
+  const splash = document.getElementById("splash");
+  const appEl  = document.getElementById("app");
+
+  appEl.classList.remove("hidden");
+  appEl.style.visibility = "hidden";
+  appEl.style.opacity = "0";
+
+  setTheme(state.settings.dark);
+  renderDashboard();
+  updateBadges();
+  checkAllExpiryAlerts();
+
+  // FIX #5: Stop camera when tab is closed or hidden to release the hardware
+  window.addEventListener("beforeunload", stopCamera);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stopCamera();
+  });
+
+  setTimeout(() => {
+    splash.style.opacity = "0";
+    setTimeout(() => {
+      splash.style.display = "none";
+      appEl.style.visibility = "visible";
+      appEl.style.transition = "opacity 0.3s ease";
+      appEl.style.opacity = "1";
+    }, 400);
+  }, 2200);
+
+  if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission();
+  }
+
+  /* NAVIGATION */
+  document.querySelectorAll(".nav-item[data-page]").forEach(link => {
+    link.addEventListener("click", e => {
+      e.preventDefault();
+      navigateTo(link.dataset.page);
+    });
+  });
+
+  /* MOBILE MENU */
+  const sidebar = document.getElementById("sidebar");
+  const sidebarOverlay = document.getElementById("sidebar-overlay");
+
+  document.getElementById("menu-toggle").addEventListener("click", () => {
+    sidebar.classList.toggle("open");
+    sidebarOverlay.classList.toggle("visible");
+  });
+  sidebarOverlay.addEventListener("click", () => {
+    sidebar.classList.remove("open");
+    sidebarOverlay.classList.remove("visible");
+  });
+
+  /* THEME TOGGLE */
+  document.getElementById("theme-toggle").addEventListener("click", () => setTheme(!state.settings.dark));
+
+  /* SCAN PAGE – camera auto-start when visiting */
+  document.querySelectorAll('.nav-item[data-page="scan"]').forEach(el => {
+    el.addEventListener("click", () => setTimeout(() => startCamera(), 300));
+  });
+
+  /* CAPTURE */
+  document.getElementById("capture-btn").addEventListener("click", simulateCapture);
+
+  /* FLIP CAMERA */
+  document.getElementById("flip-camera-btn").addEventListener("click", () => {
+    facingMode = facingMode === "environment" ? "user" : "environment";
+    toast(facingMode === "user" ? "Switched to front camera" : "Switched to rear camera", "info", 1500);
+    startCamera();
+  });
+
+  /* UPLOAD IMAGE */
+  document.getElementById("upload-btn-cam").addEventListener("click", () => {
+    document.getElementById("file-upload-input").click();
+  });
+  document.getElementById("file-upload-input").addEventListener("change", e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    handleFileUpload(file);
+    e.target.value = "";
+  });
+
+  /* AI AUTO-DETECT ON NAME INPUT */
+  let aiTimer = null;
+  document.getElementById("inp-name").addEventListener("input", e => {
+    clearTimeout(aiTimer);
+    aiTimer = setTimeout(() => aiAutoDetect(e.target.value), 500);
+  });
+
+  /* ADD ITEM */
+  document.getElementById("add-item-btn").addEventListener("click", () => {
+    addOrUpdateItem();
+    document.getElementById("add-item-btn").innerHTML = '<i class="fa-solid fa-plus"></i> Add Item';
+  });
+
+  /* CLEAR FORM */
+  document.getElementById("clear-form-btn").addEventListener("click", () => {
+    clearForm();
+    document.getElementById("add-item-btn").innerHTML = '<i class="fa-solid fa-plus"></i> Add Item';
+  });
+
+  /* INVENTORY ADD BUTTON */
+  document.getElementById("inv-add-btn").addEventListener("click", () => {
+    navigateTo("scan");
+    setTimeout(() => startCamera(), 300);
+  });
+
+  /* INVENTORY FILTERS */
+  document.getElementById("filter-chips").addEventListener("click", e => {
+    const chip = e.target.closest(".chip");
+    if (!chip) return;
+    document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+    chip.classList.add("active");
+    invFilter = chip.dataset.filter;
+    renderInventory();
+  });
+  document.getElementById("search-input").addEventListener("input", e => {
+    invSearch = e.target.value;
+    renderInventory();
+  });
+  document.getElementById("sort-select").addEventListener("change", e => {
+    invSort = e.target.value;
+    renderInventory();
+  });
+
+  /* MODAL CLOSE */
+  document.getElementById("modal-close").addEventListener("click", closeModal);
+  document.getElementById("modal-overlay").addEventListener("click", e => {
+    if (e.target === document.getElementById("modal-overlay")) closeModal();
+  });
+
+  /* NOTIF BUTTON → reminders */
+  document.getElementById("notif-btn").addEventListener("click", () => navigateTo("reminders"));
+
+  /* PROFILE EDIT */
+  document.getElementById("edit-profile-btn").addEventListener("click", () => {
+    document.getElementById("profile-edit-form").classList.toggle("hidden");
+  });
+  document.getElementById("cancel-edit-btn").addEventListener("click", () => {
+    document.getElementById("profile-edit-form").classList.add("hidden");
+  });
+  document.getElementById("save-profile-btn").addEventListener("click", () => {
+    const fn = document.getElementById("pf-fname").value.trim();
+    const ln = document.getElementById("pf-lname").value.trim();
+    const em = document.getElementById("pf-email").value.trim();
+    const rm = document.getElementById("pf-reminder").value;
+    if (!fn) { toast("First name required", "error"); return; }
+    state.profile = { firstName: fn, lastName: ln, email: em, reminder: rm };
+    saveState();
+    document.getElementById("profile-edit-form").classList.add("hidden");
+    renderProfile();
+    toast("Profile saved!", "success");
+    logHistory("system", "Profile updated");
+  });
+
+  /* SETTINGS TOGGLES */
+  document.getElementById("settings-dark").addEventListener("change", e => setTheme(e.target.checked));
+  document.getElementById("settings-notif").addEventListener("change", e => {
+    state.settings.notifications = e.target.checked;
+    saveState();
+    toast(`App notifications ${e.target.checked ? "enabled" : "disabled"}`, "info");
+  });
+  document.getElementById("settings-email").addEventListener("change", e => {
+    state.settings.email = e.target.checked;
+    saveState();
+    toast(`Email alerts ${e.target.checked ? "enabled" : "disabled"}`, "info");
+  });
+  document.getElementById("settings-ai").addEventListener("change", e => {
+    state.settings.ai = e.target.checked;
+    saveState();
+    toast(`AI auto-categorize ${e.target.checked ? "enabled" : "disabled"}`, "info");
+  });
+
+  /* CLEAR ALL DATA */
+  document.getElementById("clear-all-btn").addEventListener("click", async () => {
+    const ok = await confirmDialog("Clear All Data", "This will delete ALL items and history. This cannot be undone!");
+    if (!ok) return;
+    state.items = [];
+    state.history = [];
+    state.alertedIds = [];
+    state.nextId = 1;
+    saveState();
+    renderProfile();
+    toast("All data cleared", "warn");
+  });
+
+  /* TOPBAR AVATAR → profile */
+  document.getElementById("topbar-avatar").addEventListener("click", () => navigateTo("profile"));
+
+  /* STOP CAMERA WHEN LEAVING SCAN PAGE */
+  document.querySelectorAll('.nav-item:not([data-page="scan"])').forEach(link => {
+    link.addEventListener("click", stopCamera);
+  });
+
+  /* FIX #6: Periodic check always updates badges and re-renders the active
+     page — not just the dashboard — so statuses stay fresh everywhere. */
+  setInterval(() => {
+    updateBadges();
+    renderPage(currentPage);
+  }, 60000);
+});
+
+/* ── GLOBAL EXPOSE (kept for compatibility) ──────────────── */
+window.editItem   = editItem;
+window.deleteItem = deleteItem;
+window.closeModal = closeModal;
+</script>
+</body>
+</html>
