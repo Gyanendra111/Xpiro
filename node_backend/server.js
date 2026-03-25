@@ -5,11 +5,19 @@ const sqlite3 = require("sqlite3").verbose();
 const { createWorker } = require("tesseract.js");
 const nodemailer = require("nodemailer");
 const rateLimit = require("express-rate-limit");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const DB_PATH = path.join(__dirname, "xpiro.db");
 const REMINDER_CHECK_INTERVAL_MS = 15 * 60 * 1000;
+const JWT_SECRET = process.env.JWT_SECRET || "xpiro-default-secret-change-in-production";
+const JWT_EXPIRES_IN = "24h";
+
+if (!process.env.JWT_SECRET) {
+  console.warn("WARNING: JWT_SECRET environment variable is not set. Using insecure default secret. Set JWT_SECRET in production.");
+}
 
 const CATEGORY_WARN_DAYS = {
   medicine: 7,
@@ -83,6 +91,7 @@ const staticLimiter = rateLimit({
 
 app.use(cors());
 app.use(express.json({ limit: "15mb" }));
+app.use(express.urlencoded({ extended: false }));
 app.use(staticLimiter);
 app.use(express.static(ROOT_DIR));
 
@@ -121,6 +130,18 @@ function all(sql, params = []) {
 }
 
 async function initDb() {
+  await run(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      first_name TEXT NOT NULL DEFAULT '',
+      last_name TEXT NOT NULL DEFAULT '',
+      email TEXT NOT NULL UNIQUE,
+      hashed_password TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    )
+  `);
+  await run(`CREATE INDEX IF NOT EXISTS idx_users_email ON users (email)`);
+
   await run(`
     CREATE TABLE IF NOT EXISTS app_state (
       id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -313,6 +334,104 @@ app.post("/scan", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "OCR failed" });
+  }
+});
+
+function requireAuth(req, res, next) {
+  const authHeader = req.headers["authorization"];
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ detail: "Authentication required" });
+  }
+  const token = authHeader.slice(7);
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    req.userId = parseInt(payload.sub, 10);
+    next();
+  } catch {
+    return res.status(401).json({ detail: "Invalid or expired token" });
+  }
+}
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.post("/api/auth/register", authLimiter, async (req, res) => {
+  try {
+    const { first_name = "", last_name = "", email, password } = req.body || {};
+
+    if (!email || !password) {
+      return res.status(400).json({ detail: "Email and password are required." });
+    }
+    if (password.length < 8) {
+      return res.status(422).json({ detail: "Password must be at least 8 characters." });
+    }
+
+    const existing = await get("SELECT id FROM users WHERE email = ?", [email.toLowerCase()]);
+    if (existing) {
+      return res.status(409).json({ detail: "Email already registered" });
+    }
+
+    const hashed_password = await bcrypt.hash(password, 10);
+    const result = await run(
+      "INSERT INTO users (first_name, last_name, email, hashed_password, created_at) VALUES (?, ?, ?, ?, ?)",
+      [first_name, last_name, email.toLowerCase(), hashed_password, Date.now()]
+    );
+
+    res.status(201).json({
+      id: result.lastID,
+      first_name,
+      last_name,
+      email: email.toLowerCase(),
+    });
+  } catch (err) {
+    console.error("Registration error:", err);
+    res.status(500).json({ detail: "Internal server error" });
+  }
+});
+
+app.post("/api/auth/login", authLimiter, async (req, res) => {
+  try {
+    const { username, password } = req.body || {};
+
+    if (!username || !password) {
+      return res.status(400).json({ detail: "Email and password are required." });
+    }
+
+    const user = await get("SELECT * FROM users WHERE email = ?", [username.toLowerCase()]);
+    if (!user) {
+      return res.status(401).json({ detail: "Incorrect email or password" });
+    }
+
+    const valid = await bcrypt.compare(password, user.hashed_password);
+    if (!valid) {
+      return res.status(401).json({ detail: "Incorrect email or password" });
+    }
+
+    const token = jwt.sign({ sub: String(user.id) }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+    res.json({ access_token: token, token_type: "bearer" });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ detail: "Internal server error" });
+  }
+});
+
+app.get("/api/auth/me", requireAuth, async (req, res) => {
+  try {
+    const user = await get(
+      "SELECT id, first_name, last_name, email, created_at FROM users WHERE id = ?",
+      [req.userId]
+    );
+    if (!user) {
+      return res.status(404).json({ detail: "User not found" });
+    }
+    res.json(user);
+  } catch (err) {
+    console.error("Me error:", err);
+    res.status(500).json({ detail: "Internal server error" });
   }
 });
 
