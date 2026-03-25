@@ -216,7 +216,7 @@ FastAPI generates interactive documentation automatically:
 | `POST` | `/api/items` | ✅ | Add a new item |
 | `PUT` | `/api/items/{id}` | ✅ | Update an item |
 | `DELETE` | `/api/items/{id}` | ✅ | Delete an item |
-| `POST` | `/scan` | ✅ | OCR scan (base64 image → parsed data) |
+| `POST` | `/scan` | — | OCR scan (base64 image → { text: string }) |
 | `GET` | `/api/reminders` | ✅ | List upcoming reminders |
 | `POST` | `/api/reminders/check` | ✅ | Trigger reminder check & email delivery |
 | `GET` | `/api/history` | ✅ | Get activity log |
