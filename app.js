@@ -20,9 +20,13 @@ let state = {
 let saveStateTimer = null;
 let lastSavedSnapshot = "";
 
+/* ── AUTH STATE ──────────────────────────────────────────── */
+let currentUser = null;
+let authToken   = localStorage.getItem("xpiro_token") || null;
+
 async function loadState() {
   try {
-    const response = await fetch("/api/state");
+    const response = await fetch("/api/state", { headers: getAuthHeaders() });
     if (!response.ok) throw new Error("Backend state unavailable");
 
     const payload = await response.json();
@@ -58,9 +62,10 @@ function saveState() {
       try {
         const response = await fetch("/api/state", {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
           body: JSON.stringify({ state }),
         });
+        if (response.status === 401) { authLogout(); return; }
         if (!response.ok) {
           const err = await response.json().catch(() => ({}));
           throw new Error(err.error || "Failed to persist state");
@@ -72,6 +77,159 @@ function saveState() {
   } catch (e) {
     console.warn("State save error", e);
   }
+}
+
+/* ── AUTH HELPERS ────────────────────────────────────────── */
+function getAuthHeaders() {
+  return authToken ? { "Authorization": `Bearer ${authToken}` } : {};
+}
+
+function showAuthOverlay(section = "login") {
+  document.getElementById("auth-overlay").classList.remove("hidden");
+  if (section === "register") {
+    document.getElementById("auth-login-section").classList.add("hidden");
+    document.getElementById("auth-register-section").classList.remove("hidden");
+  } else {
+    document.getElementById("auth-login-section").classList.remove("hidden");
+    document.getElementById("auth-register-section").classList.add("hidden");
+  }
+  clearAuthErrors();
+}
+
+function hideAuthOverlay() {
+  document.getElementById("auth-overlay").classList.add("hidden");
+}
+
+function clearAuthErrors() {
+  ["auth-error", "reg-error"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = ""; el.classList.add("hidden"); }
+  });
+}
+
+function showAuthError(id, msg) {
+  const el = document.getElementById(id);
+  if (el) { el.textContent = msg; el.classList.remove("hidden"); }
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+async function authAutoLogin() {
+  if (!authToken) return false;
+  try {
+    const res = await fetch("/api/auth/me", { headers: getAuthHeaders() });
+    if (!res.ok) {
+      authToken = null;
+      localStorage.removeItem("xpiro_token");
+      return false;
+    }
+    currentUser = await res.json();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function authLogin(email, password) {
+  const btn = document.getElementById("login-btn");
+  const origHTML = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Signing In…';
+  clearAuthErrors();
+
+  if (!isValidEmail(email)) {
+    showAuthError("auth-error", "Please enter a valid email address.");
+    btn.disabled = false; btn.innerHTML = origHTML; return;
+  }
+  if (!password) {
+    showAuthError("auth-error", "Password is required.");
+    btn.disabled = false; btn.innerHTML = origHTML; return;
+  }
+
+  try {
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showAuthError("auth-error", data.detail || "Login failed. Please try again.");
+      return;
+    }
+    authToken = data.access_token;
+    localStorage.setItem("xpiro_token", authToken);
+    const meRes = await fetch("/api/auth/me", { headers: getAuthHeaders() });
+    if (meRes.ok) currentUser = await meRes.json();
+    hideAuthOverlay();
+    onAuthSuccess();
+  } catch {
+    showAuthError("auth-error", "Network error. Please check your connection.");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = origHTML;
+  }
+}
+
+async function authRegister(firstName, lastName, email, password) {
+  const btn = document.getElementById("register-btn");
+  const origHTML = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating Account…';
+  clearAuthErrors();
+
+  if (!firstName.trim()) {
+    showAuthError("reg-error", "First name is required.");
+    btn.disabled = false; btn.innerHTML = origHTML; return;
+  }
+  if (!isValidEmail(email)) {
+    showAuthError("reg-error", "Please enter a valid email address.");
+    btn.disabled = false; btn.innerHTML = origHTML; return;
+  }
+  if (password.length < 8) {
+    showAuthError("reg-error", "Password must be at least 8 characters.");
+    btn.disabled = false; btn.innerHTML = origHTML; return;
+  }
+
+  try {
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ first_name: firstName, last_name: lastName, email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showAuthError("reg-error", data.detail || "Registration failed. Please try again.");
+      return;
+    }
+    // Auto-login after successful registration
+    await authLogin(email, password);
+  } catch {
+    showAuthError("reg-error", "Network error. Please check your connection.");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = origHTML;
+  }
+}
+
+function authLogout() {
+  authToken = null;
+  currentUser = null;
+  localStorage.removeItem("xpiro_token");
+  showAuthOverlay("login");
+}
+
+function onAuthSuccess() {
+  if (currentUser) {
+    state.profile.firstName = currentUser.first_name || state.profile.firstName;
+    state.profile.lastName  = currentUser.last_name  || state.profile.lastName;
+    state.profile.email     = currentUser.email       || state.profile.email;
+  }
+  renderDashboard();
+  renderProfile();
+  updateBadges();
 }
 
 /* ── CATEGORY CONFIG ─────────────────────────────────────── */
@@ -439,13 +597,30 @@ function renderHistory() {
 /* ── PROFILE ─────────────────────────────────────────────── */
 function renderProfile() {
   const p = state.profile;
-  const fullName = `${p.firstName} ${p.lastName}`.trim();
-  const initials = `${(p.firstName[0] || "?").toUpperCase()}${(p.lastName[0] || "").toUpperCase()}`;
+  // Use currentUser data if authenticated, fall back to local state
+  const firstName = (currentUser?.first_name || p.firstName || "").trim();
+  const lastName  = (currentUser?.last_name  || p.lastName  || "").trim();
+  const email     = currentUser?.email || p.email || "";
+  const fullName  = `${firstName} ${lastName}`.trim();
+  const initials  = `${(firstName[0] || "?").toUpperCase()}${(lastName[0] || "").toUpperCase()}`;
+
   document.getElementById("profile-display-name").textContent = fullName;
   // FIX #14: Always render email from JS state, not from hardcoded HTML (avoids Cloudflare obfuscation)
-  document.getElementById("profile-email-display").textContent = p.email;
+  document.getElementById("profile-email-display").textContent = email;
   document.getElementById("profile-avatar-big").textContent = initials;
   document.getElementById("topbar-avatar").textContent = initials;
+
+  // Show account creation date if authenticated
+  const joinedEl = document.getElementById("profile-joined");
+  if (joinedEl) {
+    if (currentUser?.created_at) {
+      const joined = new Date(currentUser.created_at);
+      joinedEl.textContent = `Member since ${joined.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" })}`;
+      joinedEl.classList.remove("hidden");
+    } else {
+      joinedEl.classList.add("hidden");
+    }
+  }
 
   document.getElementById("prof-total").textContent    = state.items.length;
   document.getElementById("prof-saved").textContent    = state.history.filter(h => h.type === "add").length;
@@ -460,9 +635,9 @@ function renderProfile() {
   document.getElementById("settings-email").checked = state.settings.email;
   document.getElementById("settings-ai").checked    = state.settings.ai;
 
-  document.getElementById("pf-fname").value    = p.firstName;
-  document.getElementById("pf-lname").value    = p.lastName;
-  document.getElementById("pf-email").value    = p.email;
+  document.getElementById("pf-fname").value    = firstName || p.firstName;
+  document.getElementById("pf-lname").value    = lastName  || p.lastName;
+  document.getElementById("pf-email").value    = email;
   document.getElementById("pf-reminder").value = p.reminder;
 }
 
@@ -966,19 +1141,102 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (document.hidden) stopCamera();
   });
 
+  // Try auto-login during splash, then decide what to show
+  const autoLoginOk = await authAutoLogin();
+
   setTimeout(() => {
     splash.style.opacity = "0";
     setTimeout(() => {
       splash.style.display = "none";
-      appEl.style.visibility = "visible";
-      appEl.style.transition = "opacity 0.3s ease";
-      appEl.style.opacity = "1";
+      if (autoLoginOk) {
+        onAuthSuccess();
+        appEl.style.visibility = "visible";
+        appEl.style.transition = "opacity 0.3s ease";
+        appEl.style.opacity = "1";
+      } else {
+        showAuthOverlay("login");
+      }
     }, 400);
   }, 2200);
 
   if ("Notification" in window && Notification.permission === "default") {
     Notification.requestPermission();
   }
+
+  /* AUTH OVERLAY BUTTONS */
+  document.getElementById("login-btn").addEventListener("click", () => {
+    const email    = document.getElementById("auth-email").value.trim();
+    const password = document.getElementById("auth-password").value;
+    authLogin(email, password).then(() => {
+      if (authToken) {
+        appEl.style.visibility = "visible";
+        appEl.style.transition = "opacity 0.3s ease";
+        appEl.style.opacity = "1";
+      }
+    });
+  });
+
+  document.getElementById("register-btn").addEventListener("click", () => {
+    const firstName = document.getElementById("reg-fname").value.trim();
+    const lastName  = document.getElementById("reg-lname").value.trim();
+    const email     = document.getElementById("reg-email").value.trim();
+    const password  = document.getElementById("reg-password").value;
+    authRegister(firstName, lastName, email, password).then(() => {
+      if (authToken) {
+        appEl.style.visibility = "visible";
+        appEl.style.transition = "opacity 0.3s ease";
+        appEl.style.opacity = "1";
+      }
+    });
+  });
+
+  document.getElementById("show-register").addEventListener("click", e => {
+    e.preventDefault();
+    showAuthOverlay("register");
+  });
+
+  document.getElementById("show-login").addEventListener("click", e => {
+    e.preventDefault();
+    showAuthOverlay("login");
+  });
+
+  /* PASSWORD VISIBILITY TOGGLES */
+  ["auth-password", "reg-password"].forEach(inputId => {
+    const toggleId = inputId + "-toggle";
+    const btn = document.getElementById(toggleId);
+    if (!btn) return;
+    btn.addEventListener("click", () => {
+      const inp = document.getElementById(inputId);
+      const icon = btn.querySelector("i");
+      if (inp.type === "password") {
+        inp.type = "text";
+        if (icon) icon.className = "fa-solid fa-eye-slash";
+      } else {
+        inp.type = "password";
+        if (icon) icon.className = "fa-solid fa-eye";
+      }
+    });
+  });
+
+  /* ALLOW ENTER KEY IN AUTH INPUTS */
+  document.getElementById("auth-password").addEventListener("keydown", e => {
+    if (e.key === "Enter") document.getElementById("login-btn").click();
+  });
+  document.getElementById("auth-email").addEventListener("keydown", e => {
+    if (e.key === "Enter") document.getElementById("login-btn").click();
+  });
+  document.getElementById("reg-password").addEventListener("keydown", e => {
+    if (e.key === "Enter") document.getElementById("register-btn").click();
+  });
+
+  /* LOGOUT */
+  document.getElementById("sidebar-logout").addEventListener("click", async () => {
+    const ok = await confirmDialog("Sign Out", "Are you sure you want to sign out? Your data is saved automatically.");
+    if (!ok) return;
+    appEl.style.opacity = "0";
+    appEl.style.visibility = "hidden";
+    authLogout();
+  });
 
   /* NAVIGATION */
   document.querySelectorAll(".nav-item[data-page]").forEach(link => {
