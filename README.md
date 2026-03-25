@@ -224,7 +224,8 @@ FastAPI generates interactive documentation automatically:
 | `PUT` | `/api/state` | ✅ | Bulk-save state (legacy sync) |
 | `GET` | `/api/admin/users` | ✅ Admin | List all users |
 | `DELETE` | `/api/admin/users/{id}` | ✅ Admin | Delete a user |
-| `GET` | `/api/admin/stats` | ✅ Admin | System-wide statistics |
+| `GET` | `/api/admin/items` | ✅ Admin | List all items (admin) |
+| `DELETE` | `/api/admin/items/{item_id}` | ✅ Admin | Delete an item (admin) |
 | `POST` | `/api/contact` | — | Submit a contact form message |
 | `GET` | `/api/health` | — | Health check |
 
