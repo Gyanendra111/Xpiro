@@ -165,7 +165,7 @@ The API will be available at **http://localhost:8000**.
 | `SMTP_PASS` | — | SMTP password or app password |
 | `EMAIL_FROM` | — | Display name + address for reminder emails |
 | `CONTACT_EMAIL` | *(falls back to `SMTP_USER`)* | Recipient for contact form submissions |
-| `ALLOWED_ORIGINS` | `http://localhost:5000` | Comma-separated CORS origins |
+| `ALLOWED_ORIGINS` | `http://localhost:5000,http://127.0.0.1:5000` | Comma-separated CORS origins |
 
 ---
 
