@@ -191,7 +191,7 @@ npm start                # Starts Express server on http://localhost:5000
 npx serve .              # Serves on http://localhost:3000 (or similar)
 ```
 
-> **Note:** The frontend calls the FastAPI backend at `http://localhost:8000` by default. Update the `API_BASE` constant in `index.html` if you change the backend port or deploy to a different host.
+> **Note:** The frontend uses relative paths for API calls. By default, the FastAPI backend runs at `http://localhost:8000`. In development, either open `index.html` directly while the backend is running on `http://localhost:8000`, or serve the frontend and backend from the same origin (for example, via a reverse proxy or dev server) so that relative API requests reach the FastAPI app.
 
 ---
 
