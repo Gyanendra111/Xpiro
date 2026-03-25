@@ -67,7 +67,7 @@ Xpiro helps individuals and small businesses keep track of product expiry dates.
 |---------|-------------|
 | **Authentication** | Register, login, JWT-protected routes, per-user data isolation |
 | **Inventory CRUD** | Add, edit, delete, and list tracked items with category, brand, and expiry date |
-| **OCR Scanning** | Upload or capture a product image; backend extracts text and parses expiry dates automatically |
+| **OCR Scanning** | Upload or capture a product image; backend returns raw OCR text, which the frontend parses to auto-fill product name, brand, and expiry date |
 | **Expiry Reminders** | Configurable per-item reminders (in-app and/or email); background job runs every 15 minutes |
 | **Activity History** | Full audit log of adds, edits, deletes, and reminder events |
 | **Admin Panel** | Manage all users and items; view system-wide statistics |
@@ -177,6 +177,7 @@ The frontend is a single `index.html` file — no build step required.
 > The app uses relative API calls like `fetch('/api/...')` and `fetch('/scan')`, which require being served from an HTTP(S) origin with a running backend on the same host.
 >
 > Instead, serve the frontend over HTTP using one of the options below.
+
 **Option B – Serve with the legacy Node.js backend** (also serves `index.html`)
 
 ```bash
