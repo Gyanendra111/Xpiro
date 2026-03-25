@@ -1,21 +1,2 @@
 node_modules/
 xpiro.db
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.egg-info/
-dist/
-build/
-.eggs/
-.venv/
-venv/
-env/
-
-# Backend database & uploads
-backend/*.db
-backend/uploads/*
-!backend/uploads/.gitkeep
