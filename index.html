@@ -1119,6 +1119,20 @@ img { max-width: 100%; }
   margin-top: 0.5rem;
 }
 #sidebar-logout:hover { color: var(--red); }
+.password-wrap {
+  position: relative; display: flex; align-items: center;
+}
+.password-wrap input { flex: 1; padding-right: 2.5rem; }
+.pwd-toggle {
+  position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted); font-size: 0.9rem; padding: 0;
+  transition: color var(--transition);
+}
+.pwd-toggle:hover { color: var(--accent); }
+.profile-joined {
+  color: var(--text-muted); font-size: 0.78rem; margin-top: 0.2rem;
+}
 </style>
   <link rel="stylesheet" href="styles.css"/>
 </head>
@@ -1135,7 +1149,7 @@ img { max-width: 100%; }
       <h2>Welcome Back</h2>
       <p class="auth-sub">Sign in to access your inventory</p>
       <div class="form-group"><label>Email</label><input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email"/></div>
-      <div class="form-group"><label>Password</label><input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password"/></div>
+      <div class="form-group"><label>Password</label><div class="password-wrap"><input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password"/><button type="button" class="pwd-toggle" id="auth-password-toggle" tabindex="-1" aria-label="Toggle password"><i class="fa-solid fa-eye"></i></button></div></div>
       <div id="auth-error" class="auth-error hidden"></div>
       <button class="btn btn-primary" id="login-btn" style="width:100%;margin-top:1rem;justify-content:center;"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
       <p class="auth-switch">Don't have an account? <a href="#" id="show-register">Register</a></p>
@@ -1148,7 +1162,7 @@ img { max-width: 100%; }
         <div class="form-group"><label>Last Name</label><input type="text" id="reg-lname" placeholder="Last name" autocomplete="family-name"/></div>
       </div>
       <div class="form-group"><label>Email</label><input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email"/></div>
-      <div class="form-group"><label>Password</label><input type="password" id="reg-password" placeholder="Min 8 characters" autocomplete="new-password"/></div>
+      <div class="form-group"><label>Password</label><div class="password-wrap"><input type="password" id="reg-password" placeholder="Min 8 characters" autocomplete="new-password"/><button type="button" class="pwd-toggle" id="reg-password-toggle" tabindex="-1" aria-label="Toggle password"><i class="fa-solid fa-eye"></i></button></div></div>
       <div id="reg-error" class="auth-error hidden"></div>
       <button class="btn btn-primary" id="register-btn" style="width:100%;margin-top:1rem;justify-content:center;"><i class="fa-solid fa-user-plus"></i> Create Account</button>
       <p class="auth-switch">Already have an account? <a href="#" id="show-login">Sign In</a></p>
@@ -1378,6 +1392,7 @@ img { max-width: 100%; }
         <div class="profile-info">
           <h2 id="profile-display-name">Gyanendra</h2>
           <p id="profile-email-display"><!-- populated by renderProfile() --></p>
+          <p id="profile-joined" class="profile-joined hidden"></p>
         </div>
         <button class="btn btn-ghost" id="edit-profile-btn"><i class="fa-solid fa-pen"></i> Edit</button>
       </div>
