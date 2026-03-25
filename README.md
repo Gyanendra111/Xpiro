@@ -173,13 +173,10 @@ The API will be available at **http://localhost:8000**.
 
 The frontend is a single `index.html` file — no build step required.
 
-**Option A – Open directly in browser**
-
-```bash
-open index.html          # macOS
-xdg-open index.html      # Linux
-```
-
+> ⚠️ Do **not** open `index.html` directly via `file://` (for example using `open index.html` or `xdg-open index.html`).  
+> The app uses relative API calls like `fetch('/api/...')` and `fetch('/scan')`, which require being served from an HTTP(S) origin with a running backend on the same host.
+>
+> Instead, serve the frontend over HTTP using one of the options below.
 **Option B – Serve with the legacy Node.js backend** (also serves `index.html`)
 
 ```bash
