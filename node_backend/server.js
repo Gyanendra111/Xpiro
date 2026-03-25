@@ -136,7 +136,12 @@ async function initDb() {
       history: [],
       alertedIds: [],
       emailedAlerts: [],
-      profile: { firstName: "", lastName: "", email: "", reminder: "app" },
+      profile: {
+        firstName: process.env.USER_FIRST_NAME || "User",
+        lastName: "",
+        email: process.env.SMTP_USER || "",
+        reminder: "app"
+      },
       settings: { dark: true, notifications: true, email: false, ai: true },
       nextId: 1,
     };
