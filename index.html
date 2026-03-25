@@ -1050,9 +1050,110 @@ img { max-width: 100%; }
 /* ── TOUCH DEVICES — always show card actions ────────────── */
 @media (hover: none) {
   .card-actions { opacity: 1; }
-}  </style>
+}
+
+/* ── AUTH OVERLAY ────────────────────────────────────────── */
+#auth-overlay {
+  position: fixed; inset: 0; z-index: 10000;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+}
+.auth-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 2.5rem 2rem;
+  width: 100%; max-width: 440px;
+  box-shadow: var(--shadow);
+}
+.auth-logo {
+  text-align: center; margin-bottom: 1.5rem;
+}
+.auth-logo i {
+  font-size: 2.5rem; color: var(--accent);
+  filter: drop-shadow(0 0 12px var(--accent));
+}
+.auth-logo h1 {
+  font-family: var(--font-display);
+  font-size: 2rem; font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), var(--blue));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  margin-top: 0.5rem;
+}
+.auth-card h2 {
+  font-family: var(--font-display);
+  font-size: 1.4rem; font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+.auth-sub {
+  color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;
+}
+.auth-error {
+  background: rgba(255,77,109,0.12);
+  border: 1px solid rgba(255,77,109,0.3);
+  color: var(--red);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.85rem;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+.auth-switch {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin-top: 1rem;
+}
+.auth-switch a { color: var(--accent); font-weight: 600; }
+.auth-switch a:hover { text-decoration: underline; }
+#sidebar-logout {
+  width: 100%;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+#sidebar-logout:hover { color: var(--red); }
+</style>
 </head>
 <body>
+
+<!-- AUTH OVERLAY -->
+<div id="auth-overlay" class="hidden">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <i class="fa-solid fa-clock-rotate-left"></i>
+      <h1>Xpiro</h1>
+    </div>
+    <div id="auth-login-section">
+      <h2>Welcome Back</h2>
+      <p class="auth-sub">Sign in to access your inventory</p>
+      <div class="form-group"><label>Email</label><input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email"/></div>
+      <div class="form-group"><label>Password</label><input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password"/></div>
+      <div id="auth-error" class="auth-error hidden"></div>
+      <button class="btn btn-primary" id="login-btn" style="width:100%;margin-top:1rem;justify-content:center;"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
+      <p class="auth-switch">Don't have an account? <a href="#" id="show-register">Register</a></p>
+    </div>
+    <div id="auth-register-section" class="hidden">
+      <h2>Create Account</h2>
+      <p class="auth-sub">Join Xpiro to track your items</p>
+      <div class="form-row">
+        <div class="form-group"><label>First Name</label><input type="text" id="reg-fname" placeholder="First name" autocomplete="given-name"/></div>
+        <div class="form-group"><label>Last Name</label><input type="text" id="reg-lname" placeholder="Last name" autocomplete="family-name"/></div>
+      </div>
+      <div class="form-group"><label>Email</label><input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email"/></div>
+      <div class="form-group"><label>Password</label><input type="password" id="reg-password" placeholder="Min 8 characters" autocomplete="new-password"/></div>
+      <div id="reg-error" class="auth-error hidden"></div>
+      <button class="btn btn-primary" id="register-btn" style="width:100%;margin-top:1rem;justify-content:center;"><i class="fa-solid fa-user-plus"></i> Create Account</button>
+      <p class="auth-switch">Already have an account? <a href="#" id="show-login">Sign In</a></p>
+    </div>
+  </div>
+</div>
 
 <!-- SPLASH -->
 <div id="splash">
@@ -1086,6 +1187,7 @@ img { max-width: 100%; }
         <i class="fa-solid fa-moon" id="theme-icon"></i>
       </button>
       <span class="version-tag">v1.0 Beta</span>
+      <button id="sidebar-logout" title="Sign out"><i class="fa-solid fa-right-from-bracket"></i> Sign Out</button>
     </div>
   </aside>
 
@@ -1354,6 +1456,164 @@ img { max-width: 100%; }
 
 "use strict";
 
+/* ── AUTH ────────────────────────────────────────────────── */
+let authToken = localStorage.getItem("xpiro_token") || null;
+
+function getAuthHeaders() {
+  return authToken ? { "Authorization": `Bearer ${authToken}` } : {};
+}
+
+async function apiFetch(url, options = {}) {
+  const headers = { ...getAuthHeaders(), ...(options.headers || {}) };
+  const response = await fetch(url, { ...options, headers });
+  if (response.status === 401) {
+    clearToken();
+    window.location.reload();
+    throw new Error("Session expired. Please log in again.");
+  }
+  return response;
+}
+
+function setToken(token) {
+  authToken = token;
+  localStorage.setItem("xpiro_token", token);
+}
+
+function clearToken() {
+  authToken = null;
+  localStorage.removeItem("xpiro_token");
+  localStorage.removeItem("xpiro_state");
+}
+
+function showAuthOverlay() {
+  document.getElementById("splash").style.display = "none";
+  document.getElementById("app").classList.add("hidden");
+  document.getElementById("auth-overlay").classList.remove("hidden");
+}
+
+function hideAuthOverlay() {
+  document.getElementById("auth-overlay").classList.add("hidden");
+}
+
+async function handleLogin() {
+  const email    = document.getElementById("auth-email").value.trim();
+  const password = document.getElementById("auth-password").value;
+  const errEl    = document.getElementById("auth-error");
+  errEl.classList.add("hidden");
+
+  if (!email || !password) {
+    errEl.textContent = "Email and password are required.";
+    errEl.classList.remove("hidden");
+    return;
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errEl.textContent = "Please enter a valid email address.";
+    errEl.classList.remove("hidden");
+    return;
+  }
+
+  const btn = document.getElementById("login-btn");
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Signing in…';
+
+  try {
+    const formData = new URLSearchParams();
+    formData.append("username", email);
+    formData.append("password", password);
+
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.detail || "Invalid email or password.");
+    }
+
+    const data = await res.json();
+    setToken(data.access_token);
+    hideAuthOverlay();
+    initApp();
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.classList.remove("hidden");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Sign In';
+  }
+}
+
+async function handleRegister() {
+  const fname    = document.getElementById("reg-fname").value.trim();
+  const lname    = document.getElementById("reg-lname").value.trim();
+  const email    = document.getElementById("reg-email").value.trim();
+  const password = document.getElementById("reg-password").value;
+  const errEl    = document.getElementById("reg-error");
+  errEl.classList.add("hidden");
+
+  if (!email || !password) {
+    errEl.textContent = "Email and password are required.";
+    errEl.classList.remove("hidden");
+    return;
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errEl.textContent = "Please enter a valid email address.";
+    errEl.classList.remove("hidden");
+    return;
+  }
+
+  if (password.length < 8) {
+    errEl.textContent = "Password must be at least 8 characters.";
+    errEl.classList.remove("hidden");
+    return;
+  }
+
+  const btn = document.getElementById("register-btn");
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating account…';
+
+  try {
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ first_name: fname, last_name: lname, email, password }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.detail || "Registration failed. Please try again.");
+    }
+
+    // Auto-login after successful registration
+    const formData = new URLSearchParams();
+    formData.append("username", email);
+    formData.append("password", password);
+
+    const loginRes = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: formData,
+    });
+
+    if (!loginRes.ok) throw new Error("Account created! Automatic login failed — please sign in manually.");
+
+    const loginData = await loginRes.json();
+    setToken(loginData.access_token);
+    hideAuthOverlay();
+    initApp();
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.classList.remove("hidden");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Create Account';
+  }
+}
+
 /* ── STATE ───────────────────────────────────────────────── */
 let state = {
   items: [],
@@ -1370,7 +1630,7 @@ let lastSavedSnapshot = "";
 
 async function loadState() {
   try {
-    const response = await fetch("/api/state");
+    const response = await apiFetch("/api/state");
     if (!response.ok) throw new Error("Backend state unavailable");
 
     const payload = await response.json();
@@ -1404,7 +1664,7 @@ function saveState() {
     clearTimeout(saveStateTimer);
     saveStateTimer = setTimeout(async () => {
       try {
-        const response = await fetch("/api/state", {
+        const response = await apiFetch("/api/state", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ state }),
@@ -2053,7 +2313,7 @@ function captureFrameFromFile(file) {
 }
 
 async function analyzeWithNvidia(base64Image) {
-  const ocrResponse = await fetch("/scan", {
+  const ocrResponse = await apiFetch("/scan", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ image: base64Image })
@@ -2292,7 +2552,33 @@ function seedDemoData() {
 }
 
 /* ── BOOTSTRAP ───────────────────────────────────────────── */
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", () => {
+  /* AUTH OVERLAY HANDLERS */
+  document.getElementById("show-register").addEventListener("click", e => {
+    e.preventDefault();
+    document.getElementById("auth-login-section").classList.add("hidden");
+    document.getElementById("auth-register-section").classList.remove("hidden");
+    document.getElementById("auth-error").classList.add("hidden");
+  });
+  document.getElementById("show-login").addEventListener("click", e => {
+    e.preventDefault();
+    document.getElementById("auth-register-section").classList.add("hidden");
+    document.getElementById("auth-login-section").classList.remove("hidden");
+    document.getElementById("reg-error").classList.add("hidden");
+  });
+  document.getElementById("login-btn").addEventListener("click", handleLogin);
+  document.getElementById("register-btn").addEventListener("click", handleRegister);
+  document.getElementById("auth-password").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); handleLogin(); } });
+  document.getElementById("reg-password").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); handleRegister(); } });
+
+  if (authToken) {
+    initApp();
+  } else {
+    showAuthOverlay();
+  }
+});
+
+async function initApp() {
   await loadState();
   seedDemoData();
 
@@ -2490,13 +2776,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     link.addEventListener("click", stopCamera);
   });
 
+  /* LOGOUT */
+  document.getElementById("sidebar-logout").addEventListener("click", () => {
+    stopCamera();
+    clearToken();
+    window.location.reload();
+  });
+
   /* FIX #6: Periodic check always updates badges and re-renders the active
      page — not just the dashboard — so statuses stay fresh everywhere. */
   setInterval(() => {
     updateBadges();
     renderPage(currentPage);
   }, 60000);
-});
+}
 
 /* ── GLOBAL EXPOSE (kept for compatibility) ──────────────── */
 window.editItem   = editItem;
