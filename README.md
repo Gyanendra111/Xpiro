@@ -21,7 +21,7 @@
 
 ## Overview
 
-Xpiro helps individuals and small businesses keep track of product expiry dates. Users scan a product label with their camera (or upload an image), and the app uses OCR to extract the product name, brand, and expiry date automatically. Items nearing expiry trigger in-app and email reminders so nothing goes to waste or becomes a health hazard.
+Xpiro helps individuals and small businesses keep track of product expiry dates. Users scan a product label with their camera (or upload an image), and the app uses OCR to extract text from the label, which is then parsed to identify the product name, brand, and expiry date automatically. Items nearing expiry trigger in-app and email reminders so nothing goes to waste or becomes a health hazard.
 
 ---
 
