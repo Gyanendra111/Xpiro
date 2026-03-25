@@ -51,7 +51,7 @@ Xpiro helps individuals and small businesses keep track of product expiry dates.
 | Layer     | Technology                       |
 |-----------|----------------------------------|
 | Frontend  | HTML5, CSS3, Vanilla JavaScript  |
-| Backend   | Python 3.12, FastAPI, Uvicorn    |
+| Backend   | Python 3.10+, FastAPI, Uvicorn   |
 | ORM       | SQLAlchemy 2 + Alembic           |
 | Auth      | JWT (python-jose + passlib)      |
 | OCR       | Tesseract + pytesseract + Pillow |
